@@ -10,84 +10,320 @@
     
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase CDN -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-    <style>
+        <style>
         /* Interフォントの読み込み（Tailwindのデフォルトに合わせる） */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-
-        /* iOSでの"バウンス"（オーバースクロール）を防ぐ */
-        /* html, body {
-            overflow: hidden;
-            height: 100%;
-        } */
-
-        /* iPhoneのセーフエリア（ノッチやホームバー）を考慮した余白 */
         :root {
             --safe-area-inset-top: env(safe-area-inset-top);
             --safe-area-inset-bottom: env(safe-area-inset-bottom);
+            --color-bg: #f4f5f7;
+            --color-panel: #ffffff;
+            --color-panel-muted: #f2f3f7;
+            --color-elevated: #edf1fb;
+            --color-border: #dfe3ed;
+            --color-border-strong: #ccd2df;
+            --color-text: #111827;
+            --color-text-muted: #6b7280;
+            --color-accent: #5865f2;
+            --color-accent-strong: #4752c4;
+            --color-accent-soft: rgba(88, 101, 242, 0.12);
+            --color-income: #3b82f6;
+            --color-expense: #ef4444;
+            --color-income-muted: rgba(59, 130, 246, 0.12);
+            --color-expense-muted: rgba(239, 68, 68, 0.15);
+            --color-overlay: rgba(9, 11, 16, 0.8);
         }
 
-        /* アプリコンテナ */
+        body.dark-mode {
+            --color-bg: #1e1f22;
+            --color-panel: #2b2d31;
+            --color-panel-muted: #232428;
+            --color-elevated: #313338;
+            --color-border: #3b3d45;
+            --color-border-strong: #4a4d58;
+            --color-text: #f2f3f5;
+            --color-text-muted: #aeb3c2;
+            --color-accent: #5865f2;
+            --color-accent-strong: #4752c4;
+            --color-accent-soft: rgba(88, 101, 242, 0.18);
+            --color-income: #8ab6ff;
+            --color-expense: #ff9580;
+            --color-income-muted: rgba(138, 182, 255, 0.18);
+            --color-expense-muted: rgba(255, 149, 128, 0.18);
+            --color-overlay: rgba(5, 7, 12, 0.85);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+        body.dark-mode {
+            color-scheme: dark;
+        }
+
         #app-container {
             padding-top: var(--safe-area-inset-top);
             padding-bottom: var(--safe-area-inset-bottom);
+            background-color: var(--color-panel);
         }
 
-        /* 下部ナビゲーションの高さ */
+        #main-content {
+            height: calc(100vh - 60px - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+            background-color: transparent;
+        }
+
         #bottom-nav {
             height: calc(60px + var(--safe-area-inset-bottom));
             padding-bottom: var(--safe-area-inset-bottom);
+            background-color: var(--color-panel);
+            border-top: 1px solid var(--color-border);
+            box-shadow: 0 -8px 25px rgba(15, 23, 42, 0.1);
         }
 
-        /* メインコンテンツエリアの高さ計算 */
-        #main-content {
-            height: calc(100vh - 60px - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+        body.dark-mode .text-gray-800,
+        body.dark-mode .text-gray-700 {
+            color: var(--color-text) !important;
+        }
+        body.dark-mode .text-gray-600,
+        body.dark-mode .text-gray-500 {
+            color: var(--color-text-muted) !important;
+        }
+        body.dark-mode .bg-gray-100,
+        body.dark-mode .bg-gray-50 {
+            background-color: var(--color-panel-muted) !important;
+        }
+        body.dark-mode .bg-white {
+            background-color: var(--color-panel) !important;
+        }
+        body.dark-mode .border-gray-200,
+        body.dark-mode .border-gray-300 {
+            border-color: var(--color-border) !important;
         }
 
-        /* カレンダーのグリッド */
+        .summary-card {
+            background-color: var(--color-panel);
+            border-radius: 0.9rem;
+            border: 1px solid var(--color-border);
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        }
+        .analysis-card {
+            background-color: var(--color-panel);
+            border-radius: 1rem;
+            border: 1px solid var(--color-border);
+            box-shadow: 0 15px 40px rgba(15, 23, 42, 0.12);
+        }
+        .analysis-card h4,
+        .summary-card h3,
+        .analysis-card p {
+            color: var(--color-text);
+        }
+
+        #summary-income,
+        #analysis-income {
+            color: var(--color-income);
+        }
+        #summary-expense,
+        #analysis-expense {
+            color: var(--color-expense);
+        }
+        #summary-balance,
+        #analysis-balance {
+            color: var(--color-text);
+        }
+
+        #diary-filter-panel,
+        #settings-view .bg-white {
+            background-color: var(--color-panel);
+            border: 1px solid var(--color-border);
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        input,
+        select,
+        textarea {
+            background-color: var(--color-panel);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+        }
+        input::placeholder,
+        textarea::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        #input-modal {
+            background-color: var(--color-panel);
+            color: var(--color-text);
+            box-shadow: 0 18px 60px rgba(15, 23, 42, 0.35);
+        }
+        #input-modal header {
+            border-color: var(--color-border);
+        }
+        #input-modal input,
+        #input-modal select,
+        #input-modal textarea {
+            background-color: var(--color-panel-muted);
+            border-color: var(--color-border);
+        }
+
+        #type-toggle-control {
+            border: 1px solid var(--color-border);
+            background-color: var(--color-panel-muted) !important;
+            transition: background-color 0.2s ease;
+        }
+        #type-toggle-control.mode-income {
+            background-color: var(--color-income-muted) !important;
+        }
+        #type-toggle-control.mode-expense {
+            background-color: var(--color-expense-muted) !important;
+        }
+
+        #toggle-expense,
+        #toggle-income {
+            background: transparent !important;
+            color: var(--color-text-muted) !important;
+            border-radius: 9999px;
+            transition: all 0.2s ease;
+        }
+        #toggle-expense.active,
+        #toggle-income.active {
+            background-color: var(--color-panel) !important;
+            color: var(--color-accent) !important;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+        }
+        #toggle-expense.active {
+            color: var(--color-expense) !important;
+        }
+        #toggle-income.active {
+            color: var(--color-income) !important;
+        }
+
+        #add-transaction-btn {
+            background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong)) !important;
+            color: #ffffff !important;
+            border: none;
+            box-shadow: 0 15px 30px rgba(88, 101, 242, 0.35);
+        }
+        #add-transaction-btn:hover {
+            filter: brightness(1.05);
+        }
+
+        #daily-transactions li {
+            background-color: var(--color-panel-muted) !important;
+            border: 1px solid var(--color-border);
+        }
+
+        .category-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            background-color: var(--color-panel-muted);
+            color: var(--color-text);
+            border-radius: 9999px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.85rem;
+        }
+        .category-chip button {
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 9999px;
+            border: none;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .diary-card {
+            background-color: var(--color-panel);
+            border: 1px solid var(--color-border);
+            border-radius: 1rem;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+        .diary-card:hover {
+            transform: translateY(-2px);
+            background-color: var(--color-panel-muted);
+        }
+
+        .filter-toggle-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 9999px;
+            border: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--color-panel);
+            box-shadow: 0 5px 20px rgba(15, 23, 42, 0.15);
+            transition: all 0.2s ease;
+        }
+        .filter-toggle-btn.active {
+            background-color: var(--color-accent-soft);
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+        }
+
+        .photo-modal-overlay {
+            background: var(--color-overlay);
+            z-index: 60;
+        }
+        .photo-modal-content {
+            background-color: #000;
+        }
+
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
         }
         .calendar-day {
-            aspect-ratio: 1 / 1; /* 正方形に */
+            aspect-ratio: 1 / 1;
         }
         .calendar-day.other-month {
             opacity: 0.3;
         }
 
-        /* モーダルのスクロール */
         #input-modal-content {
-            max-height: calc(100vh - 120px); /* ヘッダー・フッター分を引く */
+            max-height: calc(100vh - 120px);
         }
         
-        /* 感情アイコン選択時 */
         .mood-icon.selected {
-            transform: scale(1.2);
-            background-color: #e0f2fe; /* sky-100 */
+            transform: scale(1.1);
+            background-color: var(--color-accent-soft);
         }
 
-        /* 収支トグル */
-        #type-toggle:checked + label div:first-child {
-            /* transform: translateX(100%); */
-            transform: translateX(4.5rem); /* 72px (w-40(160) - w-1/2(80) - left-1(4) - right-margin(4)) */
+        #auth-screen {
+            position: absolute;
+            inset: 0;
+            background: var(--color-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.25rem;
+            padding: 2rem;
+            text-align: center;
+            z-index: 50;
         }
-        #type-toggle:checked + label {
-            background-color: #dcfce7; /* green-100 */
+        #auth-screen.hidden {
+            display: none;
         }
-        #type-toggle:not(:checked) + label {
-            background-color: #fee2e2; /* red-100 */
+        #auth-screen button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body class="bg-gray-100">
 
     <!-- アプリ全体のコンテナ（スマホ幅に制限） -->
-    <div id="app-container" class="max-w-md mx-auto h-screen bg-white flex flex-col overflow-hidden">
+    <div id="app-container" class="max-w-md mx-auto h-screen bg-white flex flex-col overflow-hidden relative">
 
         <!-- 1. メインコンテンツエリア -->
         <main id="main-content" class="flex-grow overflow-y-auto">
@@ -123,7 +359,7 @@
                 </div>
 
                 <!-- 月次サマリー -->
-                <div class="space-y-2 p-4 bg-gray-50 rounded-lg">
+                <div class="space-y-2 p-4 summary-card">
                     <h3 class="text-lg font-semibold text-gray-700">今月のサマリー</h3>
                     <div class="flex justify-around text-center">
                         <div>
@@ -164,8 +400,24 @@
                     </button>
                 </div>
 
+                <!-- 期間サマリー -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="summary-card p-3 text-center">
+                        <p class="text-xs text-gray-500">収入</p>
+                        <p id="analysis-income" class="text-lg font-bold text-blue-600">¥0</p>
+                    </div>
+                    <div class="summary-card p-3 text-center">
+                        <p class="text-xs text-gray-500">支出</p>
+                        <p id="analysis-expense" class="text-lg font-bold text-red-600">¥0</p>
+                    </div>
+                    <div class="summary-card p-3 text-center">
+                        <p class="text-xs text-gray-500">収支</p>
+                        <p id="analysis-balance" class="text-lg font-bold text-gray-800">¥0</p>
+                    </div>
+                </div>
+
                 <!-- 支出カテゴリー（円グラフ） -->
-                <div class="bg-white p-4 rounded-lg shadow-sm">
+                <div class="analysis-card p-4">
                     <h4 class="text-md font-semibold text-gray-700 mb-2">支出カテゴリー</h4>
                     <div class="w-full max-w-xs mx-auto">
                         <canvas id="expense-chart"></canvas>
@@ -173,10 +425,113 @@
                 </div>
                 
                 <!-- 収支推移（棒グラフ） -->
-                <div class="bg-white p-4 rounded-lg shadow-sm">
+                <div class="analysis-card p-4">
                     <h4 id="balance-chart-title" class="text-md font-semibold text-gray-700 mb-2">今月の日別収支</h4>
                     <div class="w-full mx-auto">
                         <canvas id="balance-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1-3. 日記ビュー -->
+            <div id="diary-view" class="hidden p-4 space-y-4">
+                <div class="flex items-center justify-between px-2">
+                    <h2 class="text-xl font-bold text-gray-800">日記</h2>
+                    <button id="toggle-diary-filters" class="filter-toggle-btn" aria-expanded="false" aria-label="日記フィルターを切り替え">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-5.414 5.414A1 1 0 0015 12v5l-2 2-2-2v-5a1 1 0 00-.293-.707L5.293 6.707A1 1 0 015 6V4z"></path></svg>
+                    </button>
+                </div>
+
+                <!-- フィルター -->
+                <div id="diary-filter-panel" class="bg-white p-4 rounded-lg shadow-sm space-y-3 hidden">
+                    <div>
+                        <label for="diary-filter-mood" class="text-sm font-medium text-gray-600">気分</label>
+                        <select id="diary-filter-mood" class="w-full mt-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                            <option value="all">すべて</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="diary-filter-photo" class="text-sm font-medium text-gray-600">写真</label>
+                        <select id="diary-filter-photo" class="w-full mt-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                            <option value="all">すべて</option>
+                            <option value="with">写真あり</option>
+                            <option value="without">写真なし</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="diary-filter-search" class="text-sm font-medium text-gray-600">キーワード</label>
+                        <input type="search" id="diary-filter-search" placeholder="例: 楽しかった" class="w-full mt-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                    </div>
+                </div>
+
+                <!-- 日記リスト -->
+                <div id="diary-list" class="space-y-3 pb-24">
+                    <!-- JSで動的に表示 -->
+                </div>
+            </div>
+
+            <!-- 1-4. 設定ビュー -->
+            <div id="settings-view" class="hidden p-4 space-y-4">
+                <h2 class="text-xl font-bold text-gray-800 px-2">設定</h2>
+
+                <!-- アカウント情報 -->
+                <div class="bg-white p-4 rounded-lg shadow-sm flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3 text-left">
+                        <img id="account-photo" src="" alt="Avatar" class="w-12 h-12 rounded-full object-cover bg-gray-200 hidden">
+                        <div>
+                            <p id="account-name" class="text-md font-semibold text-gray-800">未ログイン</p>
+                            <p id="account-email" class="text-sm text-gray-500"></p>
+                        </div>
+                    </div>
+                    <button id="logout-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hidden">ログアウト</button>
+                </div>
+
+                <!-- テーマ設定 -->
+                <div class="bg-white p-4 rounded-lg shadow-sm space-y-3">
+                    <div>
+                        <h3 class="text-md font-semibold text-gray-800">テーマ</h3>
+                        <p class="text-sm text-gray-500">ライト / ダークモードを切り替えできます</p>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">ライト</span>
+                        <label for="theme-toggle" class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="theme-toggle" class="sr-only peer">
+                            <div class="w-16 h-8 bg-gray-300 rounded-full peer-checked:bg-blue-500 transition-colors duration-300"></div>
+                            <div class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 peer-checked:translate-x-8"></div>
+                        </label>
+                        <span class="text-sm text-gray-600">ダーク</span>
+                    </div>
+                </div>
+
+                <!-- 支出カテゴリ管理 -->
+                <div class="bg-white p-4 rounded-lg shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-md font-semibold text-gray-800">支出カテゴリ</h3>
+                            <p class="text-sm text-gray-500">よく使う分類を整理しましょう</p>
+                        </div>
+                        <span class="text-xs text-gray-500" id="expense-category-count"></span>
+                    </div>
+                    <div id="expense-category-list" class="flex flex-wrap gap-2"></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="expense-category-input" placeholder="カテゴリ名" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                        <button id="add-expense-category" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium">追加</button>
+                    </div>
+                </div>
+
+                <!-- 収入カテゴリ管理 -->
+                <div class="bg-white p-4 rounded-lg shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-md font-semibold text-gray-800">収入カテゴリ</h3>
+                            <p class="text-sm text-gray-500">必要に応じて項目を追加できます</p>
+                        </div>
+                        <span class="text-xs text-gray-500" id="income-category-count"></span>
+                    </div>
+                    <div id="income-category-list" class="flex flex-wrap gap-2"></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="income-category-input" placeholder="カテゴリ名" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                        <button id="add-income-category" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium">追加</button>
                     </div>
                 </div>
             </div>
@@ -190,6 +545,12 @@
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
                 <span class="text-xs">カレンダー</span>
             </button>
+
+            <!-- 日記ボタン -->
+            <button id="nav-diary" class="text-gray-500 p-3 flex flex-col items-center">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M6 4a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2H6zm0 2h8v8H6V6zm2 1v6l4-3-4-3z"></path></svg>
+                <span class="text-xs">日記</span>
+            </button>
             
             <!-- 新規追加ボタン -->
             <button id="add-new-btn" class="bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg -mt-8 flex justify-center items-center">
@@ -201,7 +562,23 @@
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
                 <span class="text-xs">集計</span>
             </button>
+
+            <!-- 設定ボタン -->
+            <button id="nav-settings" class="text-gray-500 p-3 flex flex-col items-center">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M11.983 2.21a1 1 0 00-1.966 0l-.2.995a1 1 0 01-.993.802H8.11a1 1 0 00-.936.648l-.342.94a1 1 0 01-.857.648l-1.017.073a1 1 0 00-.887.63l-.342.939a1 1 0 000 .71l.342.94a1 1 0 00.887.63l1.017.073a1 1 0 01.857.648l.342.94a1 1 0 00.936.647h.714a1 1 0 01.993.803l.2.994a1 1 0 001.966 0l.2-.994a1 1 0 01.993-.803h.714a1 1 0 00.936-.648l.342-.94a1 1 0 01.857-.648l1.017-.073a1 1 0 00.887-.63l.342-.94a1 1 0 000-.71l-.342-.939a1 1 0 00-.887-.63l-1.017-.073a1 1 0 01-.857-.648l-.342-.94a1 1 0 00-.936-.648h-.714a1 1 0 01-.993-.802l-.2-.995zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>
+                <span class="text-xs">設定</span>
+            </button>
         </nav>
+
+        <!-- 認証スクリーン -->
+        <div id="auth-screen" class="px-6 text-center space-y-4">
+            <div class="space-y-2">
+                <h1 class="text-2xl font-bold text-gray-800">Money Diary</h1>
+                <p id="auth-message" class="text-sm text-gray-500">Googleアカウントでログインして、あなた専用の家計簿をはじめましょう。</p>
+            </div>
+            <button id="google-login-btn" class="bg-blue-600 text-white px-6 py-3 rounded-full text-sm font-semibold shadow-lg hover:bg-blue-500 transition-colors">Googleでログイン</button>
+            <p id="auth-config-warning" class="text-xs text-red-400 hidden">Firebase構成を設定するとログインできます。</p>
+        </div>
 
     </div>
 
@@ -228,12 +605,11 @@
             <div id="expense-form" class="space-y-4">
                 <!-- 収入/支出 トグル -->
                 <div class="flex items-center justify-center">
-                    <input type="checkbox" id="type-toggle" class="hidden" />
-                    <label for="type-toggle" class="relative w-40 h-10 rounded-lg flex items-center justify-between px-3 cursor-pointer transition-colors duration-300">
-                        <span class="font-semibold text-red-600">支出</span>
-                        <div class="absolute left-1 top-1 w-1/2 h-8 bg-white rounded-md shadow transition-transform duration-300"></div>
-                        <span class="font-semibold text-green-600">収入</span>
-                    </label>
+                    <input type="checkbox" id="type-toggle" class="sr-only" />
+                    <div id="type-toggle-control" class="grid grid-cols-2 gap-1 bg-red-100 rounded-full p-1 w-48">
+                        <button type="button" id="toggle-expense" class="py-2 rounded-full text-sm font-semibold text-red-600 bg-white shadow">支出</button>
+                        <button type="button" id="toggle-income" class="py-2 rounded-full text-sm font-semibold text-gray-500">収入</button>
+                    </div>
                 </div>
 
                 <!-- 金額 -->
@@ -318,35 +694,73 @@
         </div>
     </div>
 
+    <!-- 写真プレビューモーダル -->
+    <div id="photo-preview-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4 photo-modal-overlay">
+        <div class="photo-modal-content relative rounded-lg overflow-hidden max-w-md w-full">
+            <button id="photo-preview-close" class="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <img id="photo-preview-image" src="" alt="日記写真" class="w-full max-h-[80vh] object-contain bg-black">
+        </div>
+    </div>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
             // --- 状態管理 ---
-            let currentView = 'calendar'; // 'calendar' or 'analysis'
+            // 定数
+            const FIREBASE_CONFIG = {
+                apiKey: "AIzaSyAL4m9Ixjq9hETKad_esPvWqUkdIWxt1nY",
+                authDomain: "moneydiary-web.firebaseapp.com",
+                projectId: "moneydiary-web",
+                storageBucket: "moneydiary-web.firebasestorage.app",
+                messagingSenderId: "79130877798",
+                appId: "1:79130877798:web:68504c48d434bc815bf2a7"
+            };
+            const isFirebaseConfigured = FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.includes('YOUR_API_KEY');
+            const MOODS = ['😄', '😊', '😐', '😞', '😡']; // 5段階に変更
+            const DEFAULT_CATEGORIES = {
+                expense: ['食費', '交通費', '日用品', '趣味', '交際費', '固定費', 'その他'],
+                income: ['給与', 'その他収入']
+            };
+            const SETTINGS_KEY = 'moneyDiarySettings';
+
+            let currentView = 'calendar'; // 'calendar' | 'analysis' | 'diary' | 'settings'
             let currentAnalysisView = 'month'; // 'week', 'month', 'year'
             let currentDate = new Date(); // 表示用の現在月・週・年
             let selectedDateStr = formatDate(new Date()); // 選択された日付 (YYYY-MM-DD)
             let records = {}; // データストア
             let tempPhotoData = null; // 一時的な写真データ(Base64)
             let selectedMood = null; // 選択中の感情
+            let diaryFilters = { mood: 'all', photo: 'all', search: '' };
+            let appSettings = {
+                theme: 'light',
+                categories: {
+                    expense: [...DEFAULT_CATEGORIES.expense],
+                    income: [...DEFAULT_CATEGORIES.income]
+                }
+            };
+            let isDiaryFilterOpen = false;
+            let firebaseApp = null;
+            let auth = null;
+            let db = null;
+            let currentUser = null;
+            const STORAGE_BASE_KEY = 'moneyDiaryRecords';
 
             // グラフインスタンス
             let expenseChartInstance = null;
             let balanceChartInstance = null;
 
-            // 定数
-            const MOODS = ['😄', '😊', '😐', '😞', '😡']; // 5段階に変更
-            const CATEGORIES = {
-                expense: ['食費', '交通費', '日用品', '趣味', '交際費', '固定費', 'その他'],
-                income: ['給与', 'その他収入']
-            };
-
             // --- DOM要素 ---
             const calendarView = document.getElementById('calendar-view');
             const analysisView = document.getElementById('analysis-view');
+            const diaryView = document.getElementById('diary-view');
+            const settingsView = document.getElementById('settings-view');
             const navCalendar = document.getElementById('nav-calendar');
             const navAnalysis = document.getElementById('nav-analysis');
+            const navDiary = document.getElementById('nav-diary');
+            const navSettings = document.getElementById('nav-settings');
             const addNewBtn = document.getElementById('add-new-btn');
             const inputModal = document.getElementById('input-modal');
             const closeModalBtn = document.getElementById('close-modal-btn');
@@ -357,6 +771,9 @@
             const expenseForm = document.getElementById('expense-form');
             const diaryForm = document.getElementById('diary-form');
             const typeToggle = document.getElementById('type-toggle');
+            const typeToggleControl = document.getElementById('type-toggle-control');
+            const toggleExpenseBtn = document.getElementById('toggle-expense');
+            const toggleIncomeBtn = document.getElementById('toggle-income');
             const amountInput = document.getElementById('amount');
             const categorySelect = document.getElementById('category');
             const memoInput = document.getElementById('memo');
@@ -368,24 +785,215 @@
             const photoPreview = document.getElementById('photo-preview');
             const photoPreviewText = document.getElementById('photo-preview-text');
             const photoRemoveBtn = document.getElementById('photo-remove-btn');
+            const diaryList = document.getElementById('diary-list');
+            const diaryFilterMood = document.getElementById('diary-filter-mood');
+            const diaryFilterPhoto = document.getElementById('diary-filter-photo');
+            const diaryFilterSearch = document.getElementById('diary-filter-search');
+            const toggleDiaryFiltersBtn = document.getElementById('toggle-diary-filters');
+            const diaryFilterPanel = document.getElementById('diary-filter-panel');
+            const authScreen = document.getElementById('auth-screen');
+            const googleLoginBtn = document.getElementById('google-login-btn');
+            const authMessage = document.getElementById('auth-message');
+            const authConfigWarning = document.getElementById('auth-config-warning');
+            const accountNameEl = document.getElementById('account-name');
+            const accountEmailEl = document.getElementById('account-email');
+            const accountPhotoEl = document.getElementById('account-photo');
+            const logoutBtn = document.getElementById('logout-btn');
+            const analysisIncomeEl = document.getElementById('analysis-income');
+            const analysisExpenseEl = document.getElementById('analysis-expense');
+            const analysisBalanceEl = document.getElementById('analysis-balance');
+            const themeToggle = document.getElementById('theme-toggle');
+            const expenseCategoryList = document.getElementById('expense-category-list');
+            const incomeCategoryList = document.getElementById('income-category-list');
+            const expenseCategoryInput = document.getElementById('expense-category-input');
+            const incomeCategoryInput = document.getElementById('income-category-input');
+            const addExpenseCategoryBtn = document.getElementById('add-expense-category');
+            const addIncomeCategoryBtn = document.getElementById('add-income-category');
+            const expenseCategoryCount = document.getElementById('expense-category-count');
+            const incomeCategoryCount = document.getElementById('income-category-count');
+            const photoPreviewModal = document.getElementById('photo-preview-modal');
+            const photoPreviewModalImg = document.getElementById('photo-preview-image');
+            const photoPreviewModalClose = document.getElementById('photo-preview-close');
 
             // --- 初期化 ---
             function initialize() {
-                loadRecords();
+                loadSettings();
                 renderCalendar();
                 renderAnalysis(); // 初期描画
+                renderMoodSelector();
+                initializeDiaryFilters();
+                updateDiaryFilterPanelVisibility();
+                renderDiaryList();
+                renderSettingsView();
+                updateTypeToggleUI();
                 setupEventListeners();
                 updateNavUI();
-                renderMoodSelector();
+                updateAuthAvailabilityUI();
+                initializeFirebase();
             }
 
             // --- データ操作 ---
-            function loadRecords() {
-                records = JSON.parse(localStorage.getItem('moneyDiaryRecords')) || {};
+            function getUserStorageKey() {
+                return currentUser ? `${STORAGE_BASE_KEY}_${currentUser.uid}` : `${STORAGE_BASE_KEY}_guest`;
             }
 
-            function saveRecords() {
-                localStorage.setItem('moneyDiaryRecords', JSON.stringify(records));
+            function cacheRecordsLocally() {
+                if (!currentUser) return;
+                try {
+                    localStorage.setItem(getUserStorageKey(), JSON.stringify(records));
+                } catch (error) {
+                    console.warn('ローカルキャッシュの保存に失敗しました', error);
+                }
+            }
+
+            async function loadRecords() {
+                if (!currentUser) {
+                    records = {};
+                    return;
+                }
+
+                try {
+                    const cached = localStorage.getItem(getUserStorageKey());
+                    records = cached ? JSON.parse(cached) || {} : {};
+                } catch (error) {
+                    records = {};
+                }
+
+                if (!db) return;
+                try {
+                    const doc = await db.collection('users').doc(currentUser.uid).get();
+                    if (doc.exists && doc.data().records) {
+                        records = doc.data().records;
+                        cacheRecordsLocally();
+                    }
+                } catch (error) {
+                    console.error('Firestoreからの読み込みに失敗しました', error);
+                }
+            }
+
+            async function saveRecords() {
+                if (!currentUser) return;
+                cacheRecordsLocally();
+                if (!db) return;
+                try {
+                    await db.collection('users').doc(currentUser.uid).set({
+                        records,
+                        profile: {
+                            displayName: currentUser.displayName || '',
+                            email: currentUser.email || '',
+                            photoURL: currentUser.photoURL || ''
+                        },
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                } catch (error) {
+                    console.error('Firestoreへの保存に失敗しました', error);
+                }
+            }
+
+            function updateAuthAvailabilityUI() {
+                if (!googleLoginBtn) return;
+                if (isFirebaseConfigured) {
+                    googleLoginBtn.disabled = false;
+                    if (authConfigWarning) {
+                        authConfigWarning.classList.add('hidden');
+                    }
+                } else {
+                    googleLoginBtn.disabled = true;
+                    if (authConfigWarning) {
+                        authConfigWarning.classList.remove('hidden');
+                    }
+                    showAuthScreen('Firebaseの設定が完了していません。設定後にログインできます。');
+                }
+            }
+
+            function showAuthScreen(message = 'Googleアカウントでログインして、あなた専用の家計簿をはじめましょう。') {
+                if (!authScreen) return;
+                if (message && authMessage) {
+                    authMessage.textContent = message;
+                }
+                authScreen.classList.remove('hidden');
+            }
+
+            function hideAuthScreen() {
+                if (!authScreen) return;
+                authScreen.classList.add('hidden');
+            }
+
+            function initializeFirebase() {
+                if (!window.firebase) {
+                    showAuthScreen('Firebase SDKが読み込めませんでした。ページを再読み込みしてください。');
+                    updateAuthAvailabilityUI();
+                    return;
+                }
+                if (!isFirebaseConfigured) {
+                    updateAuthAvailabilityUI();
+                    return;
+                }
+                try {
+                    firebaseApp = firebase.apps && firebase.apps.length > 0 ? firebase.app() : firebase.initializeApp(FIREBASE_CONFIG);
+                    auth = firebase.auth();
+                    db = firebase.firestore();
+                    auth.onAuthStateChanged(async (user) => {
+                        if (user) {
+                            currentUser = user;
+                            hideAuthScreen();
+                            await loadRecords();
+                            renderCalendar();
+                            renderAnalysis();
+                            renderDiaryList();
+                            renderSettingsView();
+                            updateAccountInfoUI();
+                            updateNavUI();
+                        } else {
+                            currentUser = null;
+                            records = {};
+                            renderCalendar();
+                            renderAnalysis();
+                            renderDiaryList();
+                            renderSettingsView();
+                            showAuthScreen();
+                            updateNavUI();
+                        }
+                    });
+                } catch (error) {
+                    console.error('Firebase初期化に失敗しました', error);
+                    showAuthScreen('Firebaseの初期化に失敗しました。設定を確認してください。');
+                    if (googleLoginBtn) {
+                        googleLoginBtn.disabled = true;
+                    }
+                    if (authConfigWarning) {
+                        authConfigWarning.classList.remove('hidden');
+                    }
+                }
+            }
+
+            async function handleGoogleLogin() {
+                if (!auth) {
+                    showAuthScreen('Firebaseの準備中です。少し待ってから再試行してください。');
+                    return;
+                }
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.setCustomParameters({ prompt: 'select_account' });
+                try {
+                    if (window.innerWidth < 640) {
+                        await auth.signInWithRedirect(provider);
+                    } else {
+                        await auth.signInWithPopup(provider);
+                    }
+                } catch (error) {
+                    console.error('Googleログインに失敗しました', error);
+                    alert('Googleログインに失敗しました。通信状況をご確認の上、再度お試しください。');
+                }
+            }
+
+            async function handleLogout() {
+                if (!auth) return;
+                try {
+                    await auth.signOut();
+                } catch (error) {
+                    console.error('ログアウトに失敗しました', error);
+                    alert('ログアウトできませんでした。ネットワークをご確認ください。');
+                }
             }
 
             function getDayRecord(dateStr) {
@@ -397,6 +1005,63 @@
                     };
                 }
                 return records[dateStr];
+            }
+
+            function getDefaultSettings() {
+                return {
+                    theme: 'light',
+                    categories: {
+                        expense: [...DEFAULT_CATEGORIES.expense],
+                        income: [...DEFAULT_CATEGORIES.income]
+                    }
+                };
+            }
+
+            function loadSettings() {
+                const defaults = getDefaultSettings();
+                try {
+                    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+                    if (saved) {
+                        defaults.theme = saved.theme === 'dark' ? 'dark' : 'light';
+                        defaults.categories.expense = Array.isArray(saved.categories?.expense) && saved.categories.expense.length > 0
+                            ? saved.categories.expense
+                            : defaults.categories.expense;
+                        defaults.categories.income = Array.isArray(saved.categories?.income) && saved.categories.income.length > 0
+                            ? saved.categories.income
+                            : defaults.categories.income;
+                    }
+                } catch (error) {
+                    console.warn('設定の読み込みに失敗しました', error);
+                }
+                appSettings = defaults;
+                applyTheme(appSettings.theme);
+            }
+
+            function saveSettings() {
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
+            }
+
+            function applyTheme(theme) {
+                if (!document.body) return;
+                document.body.classList.toggle('dark-mode', theme === 'dark');
+                document.documentElement.setAttribute('data-theme', theme);
+                document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
+                if (window.Chart && Chart.defaults) {
+                    const textColor = theme === 'dark' ? '#e2e8f0' : '#0f172a';
+                    const gridColor = theme === 'dark' ? '#334155' : '#e5e7eb';
+                    Chart.defaults.color = textColor;
+                    Chart.defaults.borderColor = gridColor;
+                    if (Chart.defaults.scale && Chart.defaults.scale.grid) {
+                        Chart.defaults.scale.grid.color = gridColor;
+                    }
+                    if (Chart.defaults.plugins && Chart.defaults.plugins.legend && Chart.defaults.plugins.legend.labels) {
+                        Chart.defaults.plugins.legend.labels.color = textColor;
+                    }
+                }
+            }
+
+            function getCategoryOptions(type) {
+                return appSettings.categories[type] ? [...appSettings.categories[type]] : [];
             }
 
             // --- 描画 ---
@@ -542,19 +1207,42 @@
 
                 // 期間ヘッダーの更新
                 const header = document.getElementById('month-year-analysis-header');
+                let summary = { income: 0, expense: 0 };
                 if (currentAnalysisView === 'week') {
                     const week = getWeekRange(currentDate);
                     header.textContent = `${formatDate(week.start, 'short')} ~ ${formatDate(week.end, 'short')}`;
                     document.getElementById('balance-chart-title').textContent = '今週の日別収支';
-                    renderWeekAnalysis(week);
+                    summary = renderWeekAnalysis(week) || summary;
                 } else if (currentAnalysisView === 'year') {
                     header.textContent = `${currentDate.getFullYear()}年`;
                     document.getElementById('balance-chart-title').textContent = '今年の月別収支';
-                    renderYearAnalysis();
+                    summary = renderYearAnalysis() || summary;
                 } else { // month
                     header.textContent = `${currentDate.getFullYear()}年 ${currentDate.getMonth() + 1}月`;
                     document.getElementById('balance-chart-title').textContent = '今月の日別収支';
-                    renderMonthAnalysis();
+                    summary = renderMonthAnalysis() || summary;
+                }
+
+                updateAnalysisSummary(summary);
+            }
+
+            function updateAnalysisSummary(summary = { income: 0, expense: 0 }) {
+                if (!analysisIncomeEl || !analysisExpenseEl || !analysisBalanceEl) return;
+                const income = summary.income || 0;
+                const expense = summary.expense || 0;
+                const balance = income - expense;
+
+                analysisIncomeEl.textContent = `¥${income.toLocaleString()}`;
+                analysisExpenseEl.textContent = `¥${expense.toLocaleString()}`;
+                analysisBalanceEl.textContent = `¥${balance.toLocaleString()}`;
+
+                analysisBalanceEl.classList.remove('text-green-600', 'text-red-600', 'text-gray-800');
+                if (balance > 0) {
+                    analysisBalanceEl.classList.add('text-green-600');
+                } else if (balance < 0) {
+                    analysisBalanceEl.classList.add('text-red-600');
+                } else {
+                    analysisBalanceEl.classList.add('text-gray-800');
                 }
             }
 
@@ -629,6 +1317,8 @@
                 const dayLabels = Object.keys(dailyData).map(day => `${day}日`);
                 const incomeValues = Object.values(dailyData).map(d => d.income);
                 const expenseValues = Object.values(dailyData).map(d => d.expense);
+                const totalIncome = incomeValues.reduce((sum, value) => sum + value, 0);
+                const totalExpense = expenseValues.reduce((sum, value) => sum + value, 0);
 
                 if (balanceChartInstance) {
                     balanceChartInstance.destroy();
@@ -664,6 +1354,8 @@
                         }
                     }
                 });
+
+                return { income: totalIncome, expense: totalExpense };
             }
 
             // 週次集計
@@ -718,6 +1410,8 @@
                 const balanceCtx = document.getElementById('balance-chart').getContext('2d');
                 const incomeValues = Object.values(dailyData).map(d => d.income);
                 const expenseValues = Object.values(dailyData).map(d => d.expense);
+                const totalIncome = incomeValues.reduce((sum, value) => sum + value, 0);
+                const totalExpense = expenseValues.reduce((sum, value) => sum + value, 0);
 
                 if (balanceChartInstance) balanceChartInstance.destroy();
                 balanceChartInstance = new Chart(balanceCtx, {
@@ -735,6 +1429,8 @@
                         plugins: { legend: { position: 'bottom' } }
                     }
                 });
+
+                return { income: totalIncome, expense: totalExpense };
             }
 
             // 年次集計
@@ -789,6 +1485,8 @@
                 const balanceCtx = document.getElementById('balance-chart').getContext('2d');
                 const incomeValues = Object.values(monthlyData).map(d => d.income);
                 const expenseValues = Object.values(monthlyData).map(d => d.expense);
+                const totalIncome = incomeValues.reduce((sum, value) => sum + value, 0);
+                const totalExpense = expenseValues.reduce((sum, value) => sum + value, 0);
 
                 if (balanceChartInstance) balanceChartInstance.destroy();
                 balanceChartInstance = new Chart(balanceCtx, {
@@ -806,6 +1504,276 @@
                         plugins: { legend: { position: 'bottom' } }
                     }
                 });
+
+                return { income: totalIncome, expense: totalExpense };
+            }
+
+            // 日記フィルター初期化
+            function initializeDiaryFilters() {
+                if (diaryFilterMood) {
+                    // 既存オプションは「すべて」のみ想定
+                    MOODS.forEach(mood => {
+                        const option = document.createElement('option');
+                        option.value = mood;
+                        option.textContent = mood;
+                        diaryFilterMood.appendChild(option);
+                    });
+                    diaryFilterMood.value = diaryFilters.mood;
+                }
+                if (diaryFilterPhoto) {
+                    diaryFilterPhoto.value = diaryFilters.photo;
+                }
+                if (diaryFilterSearch) {
+                    diaryFilterSearch.value = diaryFilters.search;
+                }
+            }
+
+            // 日記リスト描画
+            function renderDiaryList() {
+                if (!diaryList) return;
+                if (!currentUser) {
+                    diaryList.innerHTML = '<div class="text-center text-sm text-gray-500 bg-white p-4 rounded-lg shadow-sm">ログインすると日記一覧を閲覧できます。</div>';
+                    return;
+                }
+
+                const entries = Object.entries(records)
+                    .map(([dateStr, record]) => ({
+                        dateStr,
+                        diary: record.diary || {}
+                    }))
+                    .filter(({ diary }) => {
+                        const hasText = diary.text && diary.text.trim().length > 0;
+                        return hasText || diary.mood || diary.photo;
+                    })
+                    .sort((a, b) => new Date(b.dateStr) - new Date(a.dateStr));
+
+                const filteredEntries = entries.filter(({ diary }) => {
+                    if (diaryFilters.mood !== 'all' && diary.mood !== diaryFilters.mood) {
+                        return false;
+                    }
+                    if (diaryFilters.photo === 'with' && !diary.photo) {
+                        return false;
+                    }
+                    if (diaryFilters.photo === 'without' && diary.photo) {
+                        return false;
+                    }
+                    if (diaryFilters.search) {
+                        const text = (diary.text || '').toLowerCase();
+                        if (!text.includes(diaryFilters.search)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+
+                diaryList.innerHTML = '';
+
+                if (filteredEntries.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'text-center text-sm text-gray-500 bg-white p-4 rounded-lg shadow-sm';
+                    empty.textContent = '条件に合う日記がありません';
+                    diaryList.appendChild(empty);
+                    return;
+                }
+
+                filteredEntries.forEach(({ dateStr, diary }) => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white p-4 rounded-lg shadow-sm space-y-3 diary-card cursor-pointer transition-colors duration-150 hover:bg-blue-50';
+                    card.dataset.date = dateStr;
+
+                    const header = document.createElement('div');
+                    header.className = 'flex justify-between items-start';
+
+                    const dateEl = document.createElement('div');
+                    dateEl.innerHTML = `
+                        <p class="text-sm font-semibold text-gray-800">${formatDiaryDate(dateStr)}</p>
+                    `;
+                    header.appendChild(dateEl);
+
+                    const moodEl = document.createElement('span');
+                    moodEl.className = 'text-2xl';
+                    moodEl.textContent = diary.mood || '—';
+                    header.appendChild(moodEl);
+
+                    card.appendChild(header);
+
+                    const textEl = document.createElement('p');
+                    textEl.className = 'text-sm text-gray-700 whitespace-pre-wrap leading-relaxed';
+                    textEl.textContent = diary.text && diary.text.trim().length > 0 ? diary.text : 'テキストの記録はありません';
+                    card.appendChild(textEl);
+
+                    if (diary.photo) {
+                        const photoEl = document.createElement('img');
+                        photoEl.src = diary.photo;
+                        photoEl.alt = `${dateStr} の日記写真`;
+                        photoEl.className = 'w-full h-40 object-cover rounded-lg cursor-zoom-in';
+                        photoEl.dataset.photoPreview = 'true';
+                        photoEl.addEventListener('click', (event) => {
+                            event.stopPropagation();
+                            openPhotoPreview(diary.photo);
+                        });
+                        card.appendChild(photoEl);
+                    }
+
+                    card.addEventListener('click', () => handleDiaryCardOpen(dateStr));
+
+                    diaryList.appendChild(card);
+                });
+            }
+
+            function handleDiaryCardOpen(dateStr) {
+                if (!dateStr) return;
+                if (!currentUser) {
+                    showAuthScreen();
+                    return;
+                }
+                showInputModal(dateStr);
+            }
+
+            function toggleDiaryFilters() {
+                isDiaryFilterOpen = !isDiaryFilterOpen;
+                updateDiaryFilterPanelVisibility();
+            }
+
+            function updateDiaryFilterPanelVisibility() {
+                if (!diaryFilterPanel || !toggleDiaryFiltersBtn) return;
+                if (isDiaryFilterOpen) {
+                    diaryFilterPanel.classList.remove('hidden');
+                    toggleDiaryFiltersBtn.classList.add('active');
+                } else {
+                    diaryFilterPanel.classList.add('hidden');
+                    toggleDiaryFiltersBtn.classList.remove('active');
+                }
+                toggleDiaryFiltersBtn.setAttribute('aria-expanded', isDiaryFilterOpen.toString());
+            }
+
+            function openPhotoPreview(photoData) {
+                if (!photoData || !photoPreviewModal || !photoPreviewModalImg) return;
+                photoPreviewModalImg.src = photoData;
+                photoPreviewModal.classList.remove('hidden');
+            }
+
+            function closePhotoPreview() {
+                if (!photoPreviewModal || !photoPreviewModalImg) return;
+                photoPreviewModalImg.src = '';
+                photoPreviewModal.classList.add('hidden');
+            }
+
+            function formatDiaryDate(dateStr) {
+                const date = new Date(dateStr);
+                if (Number.isNaN(date.getTime())) {
+                    return dateStr;
+                }
+                return date.toLocaleDateString('ja-JP', {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    weekday: 'short'
+                });
+            }
+
+            function renderSettingsView() {
+                updateAccountInfoUI();
+                if (themeToggle) {
+                    themeToggle.checked = appSettings.theme === 'dark';
+                }
+                renderCategoryList('expense', expenseCategoryList, expenseCategoryCount);
+                renderCategoryList('income', incomeCategoryList, incomeCategoryCount);
+            }
+
+            function renderCategoryList(type, container, countElement) {
+                if (!container) return;
+                container.innerHTML = '';
+                const categories = getCategoryOptions(type);
+                const canRemove = categories.length > 1;
+
+                categories.forEach(name => {
+                    const chip = document.createElement('span');
+                    chip.className = 'category-chip';
+
+                    const text = document.createElement('span');
+                    text.textContent = name;
+                    chip.appendChild(text);
+
+                    if (canRemove) {
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.innerHTML = '&times;';
+                        removeBtn.dataset.categoryAction = 'remove';
+                        removeBtn.dataset.categoryName = name;
+                        chip.appendChild(removeBtn);
+                    } else {
+                        const lock = document.createElement('span');
+                        lock.className = 'text-xs text-gray-500';
+                        lock.textContent = '保持';
+                        chip.appendChild(lock);
+                    }
+
+                    container.appendChild(chip);
+                });
+
+                if (countElement) {
+                    countElement.textContent = `${categories.length} 件`;
+                }
+            }
+
+            function updateAccountInfoUI() {
+                if (!accountNameEl || !accountEmailEl || !logoutBtn) return;
+                if (currentUser) {
+                    accountNameEl.textContent = currentUser.displayName || 'ゲスト';
+                    accountEmailEl.textContent = currentUser.email || '';
+                    if (accountPhotoEl) {
+                        if (currentUser.photoURL) {
+                            accountPhotoEl.src = currentUser.photoURL;
+                            accountPhotoEl.classList.remove('hidden');
+                        } else {
+                            accountPhotoEl.classList.add('hidden');
+                        }
+                    }
+                    logoutBtn.classList.remove('hidden');
+                } else {
+                    accountNameEl.textContent = 'ログインしていません';
+                    accountEmailEl.textContent = '';
+                    if (accountPhotoEl) {
+                        accountPhotoEl.classList.add('hidden');
+                    }
+                    logoutBtn.classList.add('hidden');
+                }
+            }
+
+            function handleCategoryAdd(type) {
+                const input = type === 'expense' ? expenseCategoryInput : incomeCategoryInput;
+                if (!input) return;
+                const newName = input.value.trim();
+                if (!newName) return;
+
+                const normalized = newName.toLowerCase();
+                const categories = getCategoryOptions(type);
+                const exists = categories.some(cat => cat.toLowerCase() === normalized);
+                if (exists) {
+                    input.value = '';
+                    return;
+                }
+
+                appSettings.categories[type] = [...categories, newName];
+                input.value = '';
+                saveSettings();
+                renderSettingsView();
+                updateCategorySelect();
+            }
+
+            function handleCategoryRemove(type, name) {
+                const categories = getCategoryOptions(type);
+                if (categories.length <= 1) {
+                    alert('カテゴリは少なくとも1つ必要です');
+                    return;
+                }
+
+                const updated = categories.filter(cat => cat !== name);
+                appSettings.categories[type] = updated;
+                saveSettings();
+                renderSettingsView();
+                updateCategorySelect();
             }
 
             // 感情セレクター描画
@@ -818,17 +1786,26 @@
                     btn.dataset.mood = mood;
                     btn.addEventListener('click', (e) => {
                         e.preventDefault();
-                        selectedMood = mood;
-                        // 選択状態のビジュアル更新
-                        document.querySelectorAll('.mood-icon').forEach(icon => icon.classList.remove('selected'));
-                        btn.classList.add('selected');
+                        if (selectedMood === mood) {
+                            selectedMood = null;
+                        } else {
+                            selectedMood = mood;
+                        }
+                        updateMoodSelectorUI(selectedMood);
                     });
                     moodSelector.appendChild(btn);
                 });
             }
 
             // モーダル表示
-            function showInputModal() {
+            function showInputModal(targetDateStr = selectedDateStr) {
+                if (!currentUser) {
+                    showAuthScreen();
+                    return;
+                }
+                if (targetDateStr) {
+                    selectedDateStr = targetDateStr;
+                }
                 modalDateHeader.textContent = selectedDateStr;
                 
                 const record = getDayRecord(selectedDateStr);
@@ -837,7 +1814,7 @@
                 amountInput.value = '';
                 memoInput.value = '';
                 typeToggle.checked = false; // デフォルトを支出に
-                updateCategorySelect();
+                handleTypeToggleChange();
 
                 // 収支一覧の描画
                 renderDailyTransactions(record.transactions);
@@ -879,22 +1856,43 @@
             
             // ナビゲーションUI更新
             function updateNavUI() {
-                if (currentView === 'calendar') {
-                    calendarView.classList.remove('hidden');
-                    analysisView.classList.add('hidden');
-                    navCalendar.classList.add('text-blue-600');
-                    navCalendar.classList.remove('text-gray-500');
-                    navAnalysis.classList.add('text-gray-500');
-                    navAnalysis.classList.remove('text-blue-600');
-                } else {
-                    calendarView.classList.add('hidden');
-                    analysisView.classList.remove('hidden');
-                    navCalendar.classList.add('text-gray-500');
-                    navCalendar.classList.remove('text-blue-600');
-                    navAnalysis.classList.add('text-blue-600');
-                    navAnalysis.classList.remove('text-gray-500');
-                    // analysisView 表示時にグラフを再描画
+                const viewMap = {
+                    calendar: calendarView,
+                    analysis: analysisView,
+                    diary: diaryView,
+                    settings: settingsView
+                };
+
+                Object.values(viewMap).forEach(view => {
+                    if (!view) return;
+                    view.classList.add('hidden');
+                });
+                if (viewMap[currentView]) {
+                    viewMap[currentView].classList.remove('hidden');
+                }
+
+                const navMap = {
+                    calendar: navCalendar,
+                    analysis: navAnalysis,
+                    diary: navDiary,
+                    settings: navSettings
+                };
+                Object.values(navMap).forEach(btn => {
+                    if (!btn) return;
+                    btn.classList.add('text-gray-500');
+                    btn.classList.remove('text-blue-600');
+                });
+                if (navMap[currentView]) {
+                    navMap[currentView].classList.add('text-blue-600');
+                    navMap[currentView].classList.remove('text-gray-500');
+                }
+
+                if (currentView === 'analysis') {
                     renderAnalysis();
+                } else if (currentView === 'diary') {
+                    renderDiaryList();
+                } else if (currentView === 'settings') {
+                    renderSettingsView();
                 }
             }
             
@@ -951,9 +1949,10 @@
 
             // カテゴリー選択肢更新 (収入/支出)
             function updateCategorySelect() {
-                const isIncome = typeToggle.checked;
-                const options = isIncome ? CATEGORIES.income : CATEGORIES.expense;
-                
+                if (!categorySelect) return;
+                const type = typeToggle.checked ? 'income' : 'expense';
+                const options = getCategoryOptions(type);
+
                 categorySelect.innerHTML = '';
                 options.forEach(cat => {
                     const option = document.createElement('option');
@@ -961,6 +1960,28 @@
                     option.textContent = cat;
                     categorySelect.appendChild(option);
                 });
+            }
+
+            function updateTypeToggleUI() {
+                if (!typeToggle) return;
+                const isIncome = typeToggle.checked;
+                if (typeToggleControl) {
+                    typeToggleControl.classList.toggle('mode-income', isIncome);
+                    typeToggleControl.classList.toggle('mode-expense', !isIncome);
+                }
+                if (toggleExpenseBtn) {
+                    toggleExpenseBtn.classList.toggle('active', !isIncome);
+                    toggleExpenseBtn.setAttribute('aria-pressed', (!isIncome).toString());
+                }
+                if (toggleIncomeBtn) {
+                    toggleIncomeBtn.classList.toggle('active', isIncome);
+                    toggleIncomeBtn.setAttribute('aria-pressed', isIncome.toString());
+                }
+            }
+
+            function handleTypeToggleChange() {
+                updateCategorySelect();
+                updateTypeToggleUI();
             }
 
             // 日別収支一覧を描画
@@ -1007,15 +2028,30 @@
             
             function setupEventListeners() {
                 // ナビゲーション
-                navCalendar.addEventListener('click', () => {
-                    currentView = 'calendar';
-                    updateNavUI();
-                });
-                navAnalysis.addEventListener('click', () => {
-                    currentView = 'analysis';
-                    // renderAnalysis(); // updateNavUI内で呼び出される
-                    updateNavUI();
-                });
+                if (navCalendar) {
+                    navCalendar.addEventListener('click', () => {
+                        currentView = 'calendar';
+                        updateNavUI();
+                    });
+                }
+                if (navAnalysis) {
+                    navAnalysis.addEventListener('click', () => {
+                        currentView = 'analysis';
+                        updateNavUI();
+                    });
+                }
+                if (navDiary) {
+                    navDiary.addEventListener('click', () => {
+                        currentView = 'diary';
+                        updateNavUI();
+                    });
+                }
+                if (navSettings) {
+                    navSettings.addEventListener('click', () => {
+                        currentView = 'settings';
+                        updateNavUI();
+                    });
+                }
 
                 // 月移動 (カレンダー)
                 document.getElementById('prev-month-btn').addEventListener('click', () => {
@@ -1081,12 +2117,134 @@
                 saveBtn.addEventListener('click', handleSave);
                 
                 // 収支フォーム
-                typeToggle.addEventListener('change', updateCategorySelect);
+                if (typeToggle) {
+                    typeToggle.addEventListener('change', handleTypeToggleChange);
+                }
+                if (toggleExpenseBtn) {
+                    toggleExpenseBtn.addEventListener('click', () => {
+                        if (typeToggle.checked) {
+                            typeToggle.checked = false;
+                            typeToggle.dispatchEvent(new Event('change'));
+                        } else {
+                            updateTypeToggleUI();
+                        }
+                    });
+                }
+                if (toggleIncomeBtn) {
+                    toggleIncomeBtn.addEventListener('click', () => {
+                        if (!typeToggle.checked) {
+                            typeToggle.checked = true;
+                            typeToggle.dispatchEvent(new Event('change'));
+                        } else {
+                            updateTypeToggleUI();
+                        }
+                    });
+                }
                 addTransactionBtn.addEventListener('click', handleAddTransaction); // 追加
                 
                 // 日記フォーム (写真)
                 photoUpload.addEventListener('change', handlePhotoUpload);
                 photoRemoveBtn.addEventListener('click', handlePhotoRemove);
+
+                // 日記フィルター
+                if (diaryFilterMood) {
+                    diaryFilterMood.addEventListener('change', (event) => {
+                        diaryFilters.mood = event.target.value;
+                        renderDiaryList();
+                    });
+                }
+                if (diaryFilterPhoto) {
+                    diaryFilterPhoto.addEventListener('change', (event) => {
+                        diaryFilters.photo = event.target.value;
+                        renderDiaryList();
+                    });
+                }
+                if (diaryFilterSearch) {
+                    diaryFilterSearch.addEventListener('input', (event) => {
+                        diaryFilters.search = event.target.value.trim().toLowerCase();
+                        renderDiaryList();
+                    });
+                }
+
+                if (toggleDiaryFiltersBtn) {
+                    toggleDiaryFiltersBtn.addEventListener('click', toggleDiaryFilters);
+                }
+
+                if (googleLoginBtn) {
+                    googleLoginBtn.addEventListener('click', handleGoogleLogin);
+                }
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', handleLogout);
+                }
+
+                // テーマ・カテゴリ設定
+                if (themeToggle) {
+                    themeToggle.addEventListener('change', (event) => {
+                        appSettings.theme = event.target.checked ? 'dark' : 'light';
+                        applyTheme(appSettings.theme);
+                        saveSettings();
+                        if (currentView === 'analysis') {
+                            renderAnalysis();
+                        }
+                    });
+                }
+
+                if (addExpenseCategoryBtn) {
+                    addExpenseCategoryBtn.addEventListener('click', () => handleCategoryAdd('expense'));
+                }
+                if (addIncomeCategoryBtn) {
+                    addIncomeCategoryBtn.addEventListener('click', () => handleCategoryAdd('income'));
+                }
+                if (expenseCategoryInput) {
+                    expenseCategoryInput.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter') {
+                            event.preventDefault();
+                            handleCategoryAdd('expense');
+                        }
+                    });
+                }
+                if (incomeCategoryInput) {
+                    incomeCategoryInput.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter') {
+                            event.preventDefault();
+                            handleCategoryAdd('income');
+                        }
+                    });
+                }
+
+                if (expenseCategoryList) {
+                    expenseCategoryList.addEventListener('click', (event) => {
+                        const target = event.target.closest('[data-category-action="remove"]');
+                        if (!target) return;
+                        handleCategoryRemove('expense', target.dataset.categoryName);
+                    });
+                }
+                if (incomeCategoryList) {
+                    incomeCategoryList.addEventListener('click', (event) => {
+                        const target = event.target.closest('[data-category-action="remove"]');
+                        if (!target) return;
+                        handleCategoryRemove('income', target.dataset.categoryName);
+                    });
+                }
+
+                if (photoPreviewModalClose) {
+                    photoPreviewModalClose.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        closePhotoPreview();
+                    });
+                }
+                if (photoPreviewModal) {
+                    photoPreviewModal.addEventListener('click', (event) => {
+                        if (event.target === photoPreviewModal) {
+                            closePhotoPreview();
+                        }
+                    });
+                }
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape' && photoPreviewModal && !photoPreviewModal.classList.contains('hidden')) {
+                        closePhotoPreview();
+                    }
+                });
             }
             
             // 収支追加処理 (連続入力用)
@@ -1127,7 +2285,7 @@
             }
 
             // 保存処理 (モーダルを閉じる)
-            function handleSave() {
+            async function handleSave() {
                 // フォームに残っている収支があれば追加する
                 handleAddTransaction(false); // リセットしない
 
@@ -1138,19 +2296,22 @@
                 record.diary.mood = selectedMood;
                 record.diary.photo = tempPhotoData;
 
-                saveRecords();
+                await saveRecords();
                 
                 // UI更新
                 hideInputModal();
                 renderCalendar(); // カレンダーのアイコン更新
-                // renderAnalysis(); // analysisビューが表示された時に更新される
+                renderDiaryList(); // 日記一覧の更新
+                if (currentView === 'analysis') {
+                    renderAnalysis();
+                }
             }
 
             // 収支削除
-            function handleDeleteTransaction(transactionId) {
+            async function handleDeleteTransaction(transactionId) {
                 const record = getDayRecord(selectedDateStr);
                 record.transactions = record.transactions.filter(t => t.id !== transactionId);
-                saveRecords();
+                await saveRecords();
                 // 収支一覧を再描画
                 renderDailyTransactions(record.transactions);
             }
