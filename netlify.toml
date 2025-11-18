@@ -2,5 +2,8 @@
   command = "bash inject-env.sh"
   publish = "public"
 
+[functions]
+  directory = "netlify/functions"
+
 [build.environment]
   SECRETS_SCAN_OMIT_PATHS = "public/index.html"
