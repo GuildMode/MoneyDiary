@@ -41,22 +41,22 @@
         }
 
         body.dark-mode {
-            --color-bg: #1e1f22;
-            --color-panel: #2b2d31;
-            --color-panel-muted: #232428;
-            --color-elevated: #313338;
-            --color-border: #3b3d45;
-            --color-border-strong: #4a4d58;
-            --color-text: #f2f3f5;
-            --color-text-muted: #aeb3c2;
-            --color-accent: #5865f2;
-            --color-accent-strong: #4752c4;
-            --color-accent-soft: rgba(88, 101, 242, 0.18);
-            --color-income: #8ab6ff;
-            --color-expense: #ff9580;
-            --color-income-muted: rgba(138, 182, 255, 0.18);
-            --color-expense-muted: rgba(255, 149, 128, 0.18);
-            --color-overlay: rgba(5, 7, 12, 0.85);
+            --color-bg: #050b1f;
+            --color-panel: #0f1b34;
+            --color-panel-muted: #1a2643;
+            --color-elevated: #142147;
+            --color-border: #1f2a45;
+            --color-border-strong: #2f3a5c;
+            --color-text: #f8fafc;
+            --color-text-muted: #94a3b8;
+            --color-accent: #a78bfa;
+            --color-accent-strong: #7c3aed;
+            --color-accent-soft: rgba(167, 139, 250, 0.2);
+            --color-income: #38bdf8;
+            --color-expense: #f472b6;
+            --color-income-muted: rgba(56, 189, 248, 0.18);
+            --color-expense-muted: rgba(244, 114, 182, 0.2);
+            --color-overlay: rgba(5, 7, 12, 0.9);
         }
 
         body {
@@ -67,6 +67,13 @@
         }
         body.dark-mode {
             color-scheme: dark;
+        }
+
+        body.auth-locked,
+        body.date-picker-locked {
+            overflow: hidden;
+            height: 100vh;
+            touch-action: none;
         }
 
         #app-container {
@@ -106,6 +113,112 @@
         body.dark-mode .border-gray-200,
         body.dark-mode .border-gray-300 {
             border-color: var(--color-border) !important;
+        }
+
+        #month-year-header {
+            background: transparent;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            color: inherit;
+            cursor: pointer;
+        }
+        #month-year-header:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.35);
+            border-radius: 0.5rem;
+        }
+
+        .date-picker-card {
+            background-color: var(--color-panel);
+            border: 1px solid var(--color-border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 30px 60px rgba(15, 23, 42, 0.35);
+        }
+        body.dark-mode .date-picker-card {
+            box-shadow: 0 30px 70px rgba(2, 6, 23, 0.85);
+        }
+        .date-picker-months button {
+            background-color: var(--color-panel-muted);
+            color: var(--color-text);
+            border: 1px solid transparent;
+            border-radius: 0.85rem;
+            padding: 0.65rem 0;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .date-picker-months button.active {
+            background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
+            color: #ffffff;
+            border-color: transparent;
+            box-shadow: 0 12px 30px rgba(88, 101, 242, 0.35);
+        }
+
+        .date-picker-year-btn {
+            background-color: var(--color-panel-muted);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        .date-picker-year-btn:hover {
+            background-color: var(--color-elevated);
+        }
+
+        .date-picker-input {
+            padding: 0.8rem 1.25rem;
+            border-radius: 0.9rem;
+            border: 1px solid var(--color-border);
+            background-color: var(--color-panel-muted);
+            color: var(--color-text);
+            font-size: 1.15rem;
+            font-weight: 600;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .date-picker-input:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.35);
+        }
+
+        .date-picker-secondary {
+            background-color: transparent;
+            border: 1px solid var(--color-border);
+            color: var(--color-text-muted);
+            font-weight: 600;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        .date-picker-secondary:hover {
+            background-color: var(--color-panel-muted);
+            color: var(--color-text);
+        }
+
+        .date-picker-primary {
+            background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
+            color: #ffffff;
+            font-weight: 600;
+            border: none;
+            box-shadow: 0 15px 30px rgba(88, 101, 242, 0.35);
+            transition: filter 0.2s ease;
+        }
+        .date-picker-primary:hover {
+            filter: brightness(1.05);
+        }
+
+        body.dark-mode #logout-btn {
+            background-color: var(--color-panel-muted) !important;
+            color: var(--color-text) !important;
+            border: 1px solid var(--color-border) !important;
         }
 
         .summary-card {
@@ -299,8 +412,10 @@
         }
 
         #auth-screen {
-            position: absolute;
+            position: fixed;
             inset: 0;
+            width: 100%;
+            height: 100%;
             background: var(--color-bg);
             display: flex;
             flex-direction: column;
@@ -310,6 +425,9 @@
             padding: 2rem;
             text-align: center;
             z-index: 50;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
         }
         #auth-screen.hidden {
             display: none;
@@ -336,7 +454,10 @@
                     <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-100">
                         <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                     </button>
-                    <h2 id="month-year-header" class="text-xl font-bold text-gray-800"></h2>
+                    <button type="button" id="month-year-header" aria-label="年月を選択" class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        <span id="month-year-header-text"></span>
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
                     <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-100">
                         <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                     </button>
@@ -716,6 +837,58 @@
         </div>
     </div>
 
+    <!-- 年月ジャンプモーダル -->
+    <div id="date-picker-modal" class="hidden fixed inset-0 flex items-center justify-center px-4">
+        <div id="date-picker-overlay" class="absolute inset-0 bg-black bg-opacity-50"></div>
+        <div class="relative z-10 w-full max-w-md">
+            <div class="date-picker-card">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <p class="text-xs uppercase tracking-wide text-gray-500">ジャンプ</p>
+                        <h3 class="text-lg font-semibold text-gray-800">年月を選択</h3>
+                    </div>
+                    <button id="date-picker-close" class="date-picker-secondary rounded-full p-2" aria-label="閉じる">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <label for="date-picker-year" class="text-sm font-medium text-gray-700">年</label>
+                        <div class="flex items-center gap-3 mt-2">
+                            <button type="button" id="date-picker-year-minus" class="date-picker-year-btn" aria-label="前年へ">−</button>
+                            <input type="number" id="date-picker-year" class="date-picker-input flex-1" min="1900" max="3000" />
+                            <button type="button" id="date-picker-year-plus" class="date-picker-year-btn" aria-label="次の年へ">＋</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-sm font-medium text-gray-700 mb-2">月</p>
+                        <div class="date-picker-months grid grid-cols-3 gap-2">
+                            <button type="button" data-month-option="0">1月</button>
+                            <button type="button" data-month-option="1">2月</button>
+                            <button type="button" data-month-option="2">3月</button>
+                            <button type="button" data-month-option="3">4月</button>
+                            <button type="button" data-month-option="4">5月</button>
+                            <button type="button" data-month-option="5">6月</button>
+                            <button type="button" data-month-option="6">7月</button>
+                            <button type="button" data-month-option="7">8月</button>
+                            <button type="button" data-month-option="8">9月</button>
+                            <button type="button" data-month-option="9">10月</button>
+                            <button type="button" data-month-option="10">11月</button>
+                            <button type="button" data-month-option="11">12月</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" id="date-picker-cancel" class="px-4 py-2 rounded-lg date-picker-secondary">キャンセル</button>
+                    <button type="button" id="date-picker-confirm" class="px-4 py-2 rounded-lg date-picker-primary">移動</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -724,15 +897,29 @@
 
             // 定数
             const FIREBASE_CONFIG = {
-                apiKey: "YOUR_API_KEY",
-                authDomain: "YOUR_AUTH_DOMAIN",
-                projectId: "YOUR_PROJECT_ID",
-                storageBucket: "YOUR_STORAGE_BUCKET",
-                messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-                appId: "YOUR_APP_ID"
+                apiKey: "AIzaSyAL4m9Ixjq9hETKad_esPvWqUkdIWxt1nY",
+                authDomain: "moneydiary-web.firebaseapp.com",
+                projectId: "moneydiary-web",
+                storageBucket: "moneydiary-web.firebasestorage.app",
+                messagingSenderId: "79130877798",
+                appId: "1:79130877798:web:68504c48d434bc815bf2a7"
             };
             const isFirebaseConfigured = FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.includes('YOUR_API_KEY');
-            const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY';
+            const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com';
+            const GEMINI_API_VERSION = 'v1beta';
+            const GEMINI_API_KEY = 'AIzaSyAKCCB53WYGXb2pAHIY0j6WrKljyETJEhY';
+            const GEMINI_PREFERRED_MODELS = [
+                'models/gemini-1.5-flash-latest',
+                'models/gemini-1.5-flash-002',
+                'models/gemini-1.5-flash',
+                'models/gemini-1.5-flash-8b-latest',
+                'models/gemini-1.5-pro-latest',
+                'models/gemini-1.5-pro',
+                'models/gemini-1.0-pro',
+                'models/gemini-1.0-pro-001',
+                'models/gemini-pro'
+            ];
+            let geminiModelOrderCache = null;
             const isGeminiConfigured = GEMINI_API_KEY && !GEMINI_API_KEY.includes('YOUR_GEMINI_API_KEY');
             const MOODS = ['😄', '😊', '😐', '😞', '😡']; // 5段階に変更
             const DEFAULT_CATEGORIES = {
@@ -762,6 +949,10 @@
             let db = null;
             let currentUser = null;
             const STORAGE_BASE_KEY = 'moneyDiaryRecords';
+            const USER_AGENT = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+            const IS_MOBILE_DEVICE = /Android|iPhone|iPad|iPod/i.test(USER_AGENT);
+            const IS_IOS = /iPad|iPhone|iPod/i.test(USER_AGENT);
+            let pendingDatePickerMonth = null;
 
             // グラフインスタンス
             let expenseChartInstance = null;
@@ -810,6 +1001,17 @@
             const googleLoginBtn = document.getElementById('google-login-btn');
             const authMessage = document.getElementById('auth-message');
             const authConfigWarning = document.getElementById('auth-config-warning');
+            const monthYearHeader = document.getElementById('month-year-header');
+            const monthYearHeaderText = document.getElementById('month-year-header-text');
+            const datePickerModal = document.getElementById('date-picker-modal');
+            const datePickerOverlay = document.getElementById('date-picker-overlay');
+            const datePickerCloseBtn = document.getElementById('date-picker-close');
+            const datePickerCancelBtn = document.getElementById('date-picker-cancel');
+            const datePickerConfirmBtn = document.getElementById('date-picker-confirm');
+            const datePickerYearInput = document.getElementById('date-picker-year');
+            const datePickerYearMinus = document.getElementById('date-picker-year-minus');
+            const datePickerYearPlus = document.getElementById('date-picker-year-plus');
+            const datePickerMonthButtons = Array.from(document.querySelectorAll('[data-month-option]'));
             const accountNameEl = document.getElementById('account-name');
             const accountEmailEl = document.getElementById('account-email');
             const accountPhotoEl = document.getElementById('account-photo');
@@ -846,6 +1048,9 @@
                 setupEventListeners();
                 updateNavUI();
                 updateAuthAvailabilityUI();
+                if (authScreen && !authScreen.classList.contains('hidden')) {
+                    lockAuthScreenScroll();
+                }
                 initializeFirebase();
             }
 
@@ -923,17 +1128,91 @@
                 }
             }
 
+            function lockAuthScreenScroll() {
+                document.body?.classList.add('auth-locked');
+            }
+
+            function unlockAuthScreenScroll() {
+                document.body?.classList.remove('auth-locked');
+            }
+
+            function lockDatePickerScroll() {
+                document.body?.classList.add('date-picker-locked');
+            }
+
+            function unlockDatePickerScroll() {
+                document.body?.classList.remove('date-picker-locked');
+            }
+
             function showAuthScreen(message = 'Googleアカウントでログインして、あなた専用の家計簿をはじめましょう。') {
                 if (!authScreen) return;
                 if (message && authMessage) {
                     authMessage.textContent = message;
                 }
                 authScreen.classList.remove('hidden');
+                lockAuthScreenScroll();
             }
 
             function hideAuthScreen() {
                 if (!authScreen) return;
                 authScreen.classList.add('hidden');
+                unlockAuthScreenScroll();
+            }
+
+            function openDatePicker() {
+                if (!datePickerModal) return;
+                pendingDatePickerMonth = currentDate.getMonth();
+                if (datePickerYearInput) {
+                    datePickerYearInput.value = currentDate.getFullYear();
+                }
+                updateDatePickerMonthUI();
+                datePickerModal.classList.remove('hidden');
+                lockDatePickerScroll();
+            }
+
+            function closeDatePicker() {
+                if (!datePickerModal) return;
+                datePickerModal.classList.add('hidden');
+                unlockDatePickerScroll();
+            }
+
+            function updateDatePickerMonthUI() {
+                datePickerMonthButtons.forEach((btn) => {
+                    const month = Number(btn.dataset.monthOption);
+                    btn.classList.toggle('active', month === pendingDatePickerMonth);
+                });
+            }
+
+            function setDatePickerMonth(month) {
+                pendingDatePickerMonth = month;
+                updateDatePickerMonthUI();
+            }
+
+            function adjustDatePickerYear(delta) {
+                if (!datePickerYearInput) return;
+                const baseYear = parseInt(datePickerYearInput.value, 10) || new Date().getFullYear();
+                datePickerYearInput.value = baseYear + delta;
+            }
+
+            function confirmDatePickerSelection() {
+                if (!datePickerYearInput) return;
+                const year = parseInt(datePickerYearInput.value, 10);
+                if (!Number.isFinite(year) || year < 1900 || year > 3000) {
+                    alert('有効な年を入力してください。');
+                    return;
+                }
+                const month = typeof pendingDatePickerMonth === 'number' ? pendingDatePickerMonth : currentDate.getMonth();
+                currentDate = new Date(year, month, 1);
+                renderCalendar();
+                renderAnalysis();
+                updateNavUI();
+                closeDatePicker();
+            }
+
+            function handleGlobalKeydown(event) {
+                if (event.key === 'Escape' && datePickerModal && !datePickerModal.classList.contains('hidden')) {
+                    closeDatePicker();
+                }
             }
 
             function initializeFirebase() {
@@ -972,6 +1251,7 @@
                             updateNavUI();
                         }
                     });
+                    handleRedirectResult();
                 } catch (error) {
                     console.error('Firebase初期化に失敗しました', error);
                     showAuthScreen('Firebaseの初期化に失敗しました。設定を確認してください。');
@@ -984,6 +1264,27 @@
                 }
             }
 
+            async function handleRedirectResult() {
+                if (!auth || typeof auth.getRedirectResult !== 'function') return;
+                try {
+                    const result = await auth.getRedirectResult();
+                    if (result && result.user) {
+                        // onAuthStateChanged handles the heavy lifting, but ensure UI unlocks immediately
+                        hideAuthScreen();
+                    }
+                } catch (error) {
+                    const ignorableCodes = new Set([
+                        'auth/user-cancelled',
+                        'auth/operation-not-supported-in-this-environment'
+                    ]);
+                    if (error && ignorableCodes.has(error.code)) {
+                        return;
+                    }
+                    console.error('Googleリダイレクトログインに失敗しました', error);
+                    showAuthScreen('Googleログインに失敗しました。もう一度お試しください。');
+                }
+            }
+
             async function handleGoogleLogin() {
                 if (!auth) {
                     showAuthScreen('Firebaseの準備中です。少し待ってから再試行してください。');
@@ -992,7 +1293,11 @@
                 const provider = new firebase.auth.GoogleAuthProvider();
                 provider.setCustomParameters({ prompt: 'select_account' });
                 try {
-                    if (window.innerWidth < 640) {
+                    const prefersNarrowViewport = window.matchMedia
+                        ? window.matchMedia('(max-width: 640px)').matches
+                        : window.innerWidth < 640;
+                    const shouldUseRedirect = IS_MOBILE_DEVICE || prefersNarrowViewport || IS_IOS;
+                    if (shouldUseRedirect) {
                         await auth.signInWithRedirect(provider);
                     } else {
                         await auth.signInWithPopup(provider);
@@ -1086,10 +1391,14 @@
             // カレンダー描画
             function renderCalendar() {
                 const calendarGridBody = document.getElementById('calendar-grid-body');
-                const monthYearHeader = document.getElementById('month-year-header');
                 
                 calendarGridBody.innerHTML = '';
-                monthYearHeader.textContent = `${currentDate.getFullYear()}年 ${currentDate.getMonth() + 1}月`;
+                const headerText = `${currentDate.getFullYear()}年 ${currentDate.getMonth() + 1}月`;
+                if (monthYearHeaderText) {
+                    monthYearHeaderText.textContent = headerText;
+                } else if (monthYearHeader) {
+                    monthYearHeader.textContent = headerText;
+                }
 
                 const year = currentDate.getFullYear();
                 const month = currentDate.getMonth();
@@ -1306,7 +1615,6 @@
                 });
                 const topCategories = Object.entries(categoryTotals)
                     .sort((a, b) => b[1] - a[1])
-                    .slice(0, 5)
                     .map(([name, amount]) => ({ name, amount }));
                 return {
                     label: range.label,
@@ -1334,6 +1642,90 @@
 回答は箇条書きで、最大4行程度にまとめてください。`;
             }
 
+            async function getGeminiModelInvocationOrder() {
+                if (geminiModelOrderCache) {
+                    return geminiModelOrderCache;
+                }
+
+                const fallbackOrder = GEMINI_PREFERRED_MODELS.map(name => `${GEMINI_API_VERSION}/${name}:generateContent`);
+                if (!isGeminiConfigured) {
+                    geminiModelOrderCache = fallbackOrder;
+                    return geminiModelOrderCache;
+                }
+
+                try {
+                    const response = await fetch(`${GEMINI_API_BASE}/${GEMINI_API_VERSION}/models?key=${GEMINI_API_KEY}`);
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                        throw new Error(data?.error?.message || `Gemini model list error (${response.status})`);
+                    }
+                    const models = Array.isArray(data?.models) ? data.models : [];
+                    const supported = models
+                        .filter(model => Array.isArray(model?.supportedGenerationMethods) && model.supportedGenerationMethods.includes('generateContent'))
+                        .map(model => model.name);
+
+                    if (supported.length === 0) {
+                        throw new Error('Gemini APIに利用可能なモデルがありません。');
+                    }
+
+                    const ordered = [];
+                    GEMINI_PREFERRED_MODELS.forEach(name => {
+                        if (supported.includes(name)) {
+                            ordered.push(name);
+                        }
+                    });
+                    supported.forEach(name => {
+                        if (!ordered.includes(name)) {
+                            ordered.push(name);
+                        }
+                    });
+
+                    geminiModelOrderCache = ordered.map(name => `${GEMINI_API_VERSION}/${name}:generateContent`);
+                    return geminiModelOrderCache;
+                } catch (error) {
+                    console.warn('Geminiモデルリストの取得に失敗しました', error);
+                    geminiModelOrderCache = fallbackOrder;
+                    return geminiModelOrderCache;
+                }
+            }
+
+            async function fetchGeminiAdvice(prompt) {
+                const modelPaths = await getGeminiModelInvocationOrder();
+                let lastError = 'アドバイスを取得できませんでした。';
+
+                for (const path of modelPaths) {
+                    try {
+                        const response = await fetch(`${GEMINI_API_BASE}/${path}?key=${GEMINI_API_KEY}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ role: 'user', parts: [{ text: prompt }] }]
+                            })
+                        });
+                        const data = await response.json().catch(() => ({}));
+                        if (!response.ok) {
+                            const message = data?.error?.message || `Gemini API error (${response.status})`;
+                            const shouldTryNext =
+                                response.status === 404 || /not found/i.test(message) || /not supported/i.test(message);
+                            if (shouldTryNext) {
+                                lastError = message;
+                                continue;
+                            }
+                            throw new Error(message);
+                        }
+                        const text = data?.candidates?.[0]?.content?.parts?.map(part => part?.text).filter(Boolean).join('\n');
+                        if (text) {
+                            return text;
+                        }
+                        lastError = 'アドバイスを取得できませんでした。';
+                    } catch (error) {
+                        lastError = error?.message || 'Gemini APIとの通信に失敗しました。';
+                    }
+                }
+
+                throw new Error(lastError);
+            }
+
             async function handleAnalysisAdviceRequest() {
                 if (!analysisAiOutput) return;
                 if (!isGeminiConfigured) {
@@ -1348,22 +1740,13 @@
                 analysisAiOutput.textContent = 'Geminiが分析しています…';
                 try {
                     const prompt = buildGeminiPrompt(snapshot);
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ role: 'user', parts: [{ text: prompt }] }]
-                        })
-                    });
-                    if (!response.ok) {
-                        throw new Error(`API Error: ${response.status}`);
-                    }
-                    const data = await response.json();
-                    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    const text = await fetchGeminiAdvice(prompt);
                     analysisAiOutput.textContent = text || 'アドバイスを取得できませんでした。';
                 } catch (error) {
                     console.error('Gemini分析の取得に失敗しました', error);
-                    analysisAiOutput.textContent = 'アドバイスの取得に失敗しました。ネットワークやAPIキーをご確認ください。';
+                    analysisAiOutput.textContent = error?.message
+                        ? `アドバイスの取得に失敗しました: ${error.message}`
+                        : 'アドバイスの取得に失敗しました。ネットワークやAPIキーをご確認ください。';
                 }
             }
 
@@ -2291,6 +2674,31 @@
                     toggleDiaryFiltersBtn.addEventListener('click', toggleDiaryFilters);
                 }
 
+                if (monthYearHeader) {
+                    monthYearHeader.addEventListener('click', openDatePicker);
+                }
+                if (datePickerOverlay) {
+                    datePickerOverlay.addEventListener('click', closeDatePicker);
+                }
+                if (datePickerCloseBtn) {
+                    datePickerCloseBtn.addEventListener('click', closeDatePicker);
+                }
+                if (datePickerCancelBtn) {
+                    datePickerCancelBtn.addEventListener('click', closeDatePicker);
+                }
+                if (datePickerConfirmBtn) {
+                    datePickerConfirmBtn.addEventListener('click', confirmDatePickerSelection);
+                }
+                if (datePickerYearMinus) {
+                    datePickerYearMinus.addEventListener('click', () => adjustDatePickerYear(-1));
+                }
+                if (datePickerYearPlus) {
+                    datePickerYearPlus.addEventListener('click', () => adjustDatePickerYear(1));
+                }
+                datePickerMonthButtons.forEach((btn) => {
+                    btn.addEventListener('click', () => setDatePickerMonth(Number(btn.dataset.monthOption)));
+                });
+
                 if (googleLoginBtn) {
                     googleLoginBtn.addEventListener('click', handleGoogleLogin);
                 }
@@ -2364,6 +2772,7 @@
                         }
                     });
                 }
+                document.addEventListener('keydown', handleGlobalKeydown);
                 document.addEventListener('keydown', (event) => {
                     if (event.key === 'Escape' && photoPreviewModal && !photoPreviewModal.classList.contains('hidden')) {
                         closePhotoPreview();
@@ -2501,3 +2910,6 @@
     </script>
 </body>
 </html>
+        #date-picker-modal {
+            z-index: 60;
+        }
