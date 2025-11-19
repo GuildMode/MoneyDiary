@@ -897,17 +897,17 @@
 
             // 定数
             const FIREBASE_CONFIG = {
-                apiKey: "AIzaSyAL4m9Ixjq9hETKad_esPvWqUkdIWxt1nY",
-                authDomain: "moneydiary-web.firebaseapp.com",
-                projectId: "moneydiary-web",
-                storageBucket: "moneydiary-web.firebasestorage.app",
-                messagingSenderId: "79130877798",
-                appId: "1:79130877798:web:68504c48d434bc815bf2a7"
+                apiKey: "YOUR_API_KEY",
+                authDomain: "YOUR_AUTH_DOMAIN",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_STORAGE_BUCKET",
+                messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+                appId: "YOUR_APP_ID"
             };
             const isFirebaseConfigured = FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.includes('YOUR_API_KEY');
             const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com';
             const GEMINI_API_VERSION = 'v1beta';
-            const GEMINI_API_KEY = 'AIzaSyAKCCB53WYGXb2pAHIY0j6WrKljyETJEhY';
+            const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY';
             const GEMINI_PREFERRED_MODELS = [
                 'models/gemini-1.5-flash-latest',
                 'models/gemini-1.5-flash-002',
@@ -1293,15 +1293,28 @@
                 const provider = new firebase.auth.GoogleAuthProvider();
                 provider.setCustomParameters({ prompt: 'select_account' });
                 try {
-                    const prefersNarrowViewport = window.matchMedia
-                        ? window.matchMedia('(max-width: 640px)').matches
-                        : window.innerWidth < 640;
-                    const shouldUseRedirect = IS_MOBILE_DEVICE || prefersNarrowViewport || IS_IOS;
-                    if (shouldUseRedirect) {
-                        await auth.signInWithRedirect(provider);
-                    } else {
+                    const popupUnsupportedErrors = new Set([
+                        'auth/operation-not-supported-in-this-environment',
+                        'auth/popup-blocked'
+                    ]);
+
+                    let popupWorked = true;
+                    try {
+                        // Always try popup first so that mobile browsers keep the SPA alive.
                         await auth.signInWithPopup(provider);
+                    } catch (popupError) {
+                        popupWorked = false;
+                        if (!popupError || !popupUnsupportedErrors.has(popupError.code)) {
+                            throw popupError;
+                        }
                     }
+
+                    if (popupWorked) {
+                        return;
+                    }
+
+                    showAuthScreen('Googleログインページに移動しています...');
+                    await auth.signInWithRedirect(provider);
                 } catch (error) {
                     console.error('Googleログインに失敗しました', error);
                     alert('Googleログインに失敗しました。通信状況をご確認の上、再度お試しください。');
