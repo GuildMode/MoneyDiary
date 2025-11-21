@@ -43,22 +43,22 @@
         }
 
         body.dark-mode {
-            --color-bg: #050b1f;
-            --color-panel: #0c162d;
-            --color-panel-muted: #152347;
-            --color-elevated: #122044;
-            --color-border: #1f2b4a;
-            --color-border-strong: #304064;
-            --color-text: #f8fafc;
-            --color-text-muted: #9fb1d1;
-            --color-accent: #38bdf8;
-            --color-accent-strong: #0ea5e9;
-            --color-accent-soft: rgba(14, 165, 233, 0.22);
-            --color-income: #22d3ee;
-            --color-expense: #fb7185;
-            --color-income-muted: rgba(34, 211, 238, 0.18);
-            --color-expense-muted: rgba(251, 113, 133, 0.2);
-            --color-overlay: rgba(3, 6, 18, 0.9);
+            --color-bg: #1e1f22;
+            --color-panel: #2b2d31;
+            --color-panel-muted: #313338;
+            --color-elevated: #3c3f44;
+            --color-border: #3f4149;
+            --color-border-strong: #4d5058;
+            --color-text: #f2f3f5;
+            --color-text-muted: #b5bac1;
+            --color-accent: #5865f2;
+            --color-accent-strong: #4752c4;
+            --color-accent-soft: rgba(88, 101, 242, 0.2);
+            --color-income: #5ed0fa;
+            --color-expense: #ff7ca3;
+            --color-income-muted: rgba(94, 208, 250, 0.2);
+            --color-expense-muted: rgba(255, 124, 163, 0.22);
+            --color-overlay: rgba(5, 7, 13, 0.9);
         }
 
         body {
@@ -82,7 +82,7 @@
 
         #app-container {
             padding-top: var(--safe-area-inset-top);
-            padding-bottom: var(--safe-area-inset-bottom);
+            padding-bottom: calc(var(--safe-area-inset-bottom) + 12px);
             background-color: var(--color-panel);
             overscroll-behavior-y: contain;
             min-height: 100vh;
@@ -92,13 +92,13 @@
         #main-content {
             background-color: transparent;
             min-height: calc(100vh - var(--safe-area-inset-top));
-            padding-bottom: calc(110px + var(--safe-area-inset-bottom));
-            scroll-padding-bottom: 140px;
+            padding-bottom: calc(130px + var(--safe-area-inset-bottom));
+            scroll-padding-bottom: 160px;
         }
 
         #bottom-nav {
-            height: calc(64px + var(--safe-area-inset-bottom));
-            padding-bottom: var(--safe-area-inset-bottom);
+            height: calc(76px + var(--safe-area-inset-bottom));
+            padding-bottom: calc(var(--safe-area-inset-bottom) + 12px);
             background-color: var(--color-panel);
             border-top: 1px solid var(--color-border);
             box-shadow: 0 -10px 32px rgba(15, 23, 42, 0.12);
@@ -520,6 +520,36 @@
             height: 26px;
         }
 
+        .settings-card {
+            background-color: var(--color-panel);
+            border: 1px solid var(--color-border);
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        }
+        .settings-section-header {
+            width: 100%;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.5rem;
+            text-align: left;
+        }
+        .settings-section-content {
+            border-top: 1px solid var(--color-border);
+            margin-top: 0.5rem;
+            padding-top: 0.75rem;
+        }
+        .settings-card.collapsed .settings-section-content {
+            display: none;
+        }
+        .settings-card .chevron {
+            transition: transform 0.2s ease, color 0.2s ease;
+            color: var(--color-text-muted);
+        }
+        .settings-card.collapsed .chevron {
+            transform: rotate(-90deg);
+        }
+
         /* カテゴリ行・操作 */
         .category-action-btn {
             padding: 6px;
@@ -755,90 +785,110 @@
                 </div>
 
                 <!-- テーマ設定 -->
-                <div class="bg-white p-4 rounded-lg shadow-sm space-y-3">
-                    <div>
-                        <h3 class="text-md font-semibold text-gray-800">テーマ</h3>
-                        <p class="text-sm text-gray-500">ライト / ダークモードを切り替えできます</p>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-600">ライト</span>
-                        <label for="theme-toggle" class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="theme-toggle" class="sr-only peer">
-                            <div class="w-16 h-8 bg-gray-300 rounded-full peer-checked:bg-blue-500 transition-colors duration-300"></div>
-                            <div class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 peer-checked:translate-x-8"></div>
-                        </label>
-                        <span class="text-sm text-gray-600">ダーク</span>
+                <div class="settings-card p-4 space-y-3 collapsed" data-settings-section data-default-open="false">
+                    <button type="button" class="settings-section-header" data-settings-toggle>
+                        <div>
+                            <h3 class="text-md font-semibold text-gray-800">テーマ</h3>
+                            <p class="text-sm text-gray-500">ライト / ダークモードを切り替えできます</p>
+                        </div>
+                        <svg class="chevron w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="settings-section-content space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600">ライト</span>
+                            <label for="theme-toggle" class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="theme-toggle" class="sr-only peer">
+                                <div class="w-16 h-8 bg-gray-300 rounded-full peer-checked:bg-blue-500 transition-colors duration-300"></div>
+                                <div class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 peer-checked:translate-x-8"></div>
+                            </label>
+                            <span class="text-sm text-gray-600">ダーク</span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- 支出カテゴリ管理 -->
-                <div class="bg-white p-4 rounded-lg shadow-sm space-y-3">
-                    <div class="flex items-center justify-between">
+                <div class="settings-card p-4 space-y-3 collapsed" data-settings-section data-default-open="false">
+                    <button type="button" class="settings-section-header" data-settings-toggle>
                         <div>
                             <h3 class="text-md font-semibold text-gray-800">支出カテゴリ</h3>
                             <p class="text-sm text-gray-500">ドラッグまたは矢印で並び替えできます</p>
                         </div>
-                        <span class="text-xs text-gray-500" id="expense-category-count"></span>
-                    </div>
-                    <ul id="expense-category-list" class="space-y-2"></ul>
-                    <div class="flex gap-2 items-center">
-                        <input type="text" id="expense-category-input" placeholder="カテゴリ名" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
-                        <button id="add-expense-category" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap">追加</button>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-500" id="expense-category-count"></span>
+                            <svg class="chevron w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </button>
+                    <div class="settings-section-content space-y-3">
+                        <ul id="expense-category-list" class="space-y-2"></ul>
+                        <div class="flex gap-2 items-center">
+                            <input type="text" id="expense-category-input" placeholder="カテゴリ名" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                            <button id="add-expense-category" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap">追加</button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- 収入カテゴリ管理 -->
-                <div class="bg-white p-4 rounded-lg shadow-sm space-y-3">
-                    <div class="flex items-center justify-between">
+                <div class="settings-card p-4 space-y-3 collapsed" data-settings-section data-default-open="false">
+                    <button type="button" class="settings-section-header" data-settings-toggle>
                         <div>
                             <h3 class="text-md font-semibold text-gray-800">収入カテゴリ</h3>
                             <p class="text-sm text-gray-500">整理して入力を素早く</p>
                         </div>
-                        <span class="text-xs text-gray-500" id="income-category-count"></span>
-                    </div>
-                    <ul id="income-category-list" class="space-y-2"></ul>
-                    <div class="flex gap-2 items-center">
-                        <input type="text" id="income-category-input" placeholder="カテゴリ名" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
-                        <button id="add-income-category" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap">追加</button>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-500" id="income-category-count"></span>
+                            <svg class="chevron w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </button>
+                    <div class="settings-section-content space-y-3">
+                        <ul id="income-category-list" class="space-y-2"></ul>
+                        <div class="flex gap-2 items-center">
+                            <input type="text" id="income-category-input" placeholder="カテゴリ名" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                            <button id="add-income-category" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap">追加</button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- 定額の自動記録 -->
-                <div class="bg-white p-4 rounded-lg shadow-sm space-y-3">
-                    <div class="flex items-center justify-between">
+                <div class="settings-card p-4 space-y-3 collapsed" data-settings-section data-default-open="false">
+                    <button type="button" class="settings-section-header" data-settings-toggle>
                         <div>
                             <h3 class="text-md font-semibold text-gray-800">定額の自動記録</h3>
                             <p class="text-sm text-gray-500">毎月の固定費・定期収入を自動で登録します</p>
                         </div>
-                        <button id="recurring-save-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">追加</button>
-                    </div>
-                    <div class="grid grid-cols-1 gap-3 text-sm">
-                        <div class="flex gap-2">
-                            <label class="w-24 text-gray-600 font-medium">種別</label>
-                            <select id="recurring-type-select" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                <option value="expense">支出</option>
-                                <option value="income">収入</option>
-                            </select>
+                        <svg class="chevron w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="settings-section-content space-y-3">
+                        <div class="grid grid-cols-1 gap-3 text-sm">
+                            <div class="flex gap-2">
+                                <label class="w-24 text-gray-600 font-medium">種別</label>
+                                <select id="recurring-type-select" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="expense">支出</option>
+                                    <option value="income">収入</option>
+                                </select>
+                            </div>
+                            <div class="flex gap-2">
+                                <label class="w-24 text-gray-600 font-medium">日付</label>
+                                <input type="number" id="recurring-day-input" min="1" max="31" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="1〜31">
+                            </div>
+                            <div class="flex gap-2">
+                                <label class="w-24 text-gray-600 font-medium">金額</label>
+                                <input type="number" id="recurring-amount-input" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="0">
+                            </div>
+                            <div class="flex gap-2">
+                                <label class="w-24 text-gray-600 font-medium">カテゴリ</label>
+                                <select id="recurring-category-input" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></select>
+                            </div>
+                            <div class="flex gap-2">
+                                <label class="w-24 text-gray-600 font-medium">メモ</label>
+                                <input type="text" id="recurring-memo-input" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="（任意）">
+                            </div>
                         </div>
-                        <div class="flex gap-2">
-                            <label class="w-24 text-gray-600 font-medium">日付</label>
-                            <input type="number" id="recurring-day-input" min="1" max="31" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="1〜31">
+                        <div class="flex justify-end">
+                            <button id="recurring-save-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">追加</button>
                         </div>
-                        <div class="flex gap-2">
-                            <label class="w-24 text-gray-600 font-medium">金額</label>
-                            <input type="number" id="recurring-amount-input" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="0">
+                        <div id="recurring-list" class="space-y-2">
+                            <!-- JSで動的に生成 -->
                         </div>
-                        <div class="flex gap-2">
-                            <label class="w-24 text-gray-600 font-medium">カテゴリ</label>
-                            <select id="recurring-category-input" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></select>
-                        </div>
-                        <div class="flex gap-2">
-                            <label class="w-24 text-gray-600 font-medium">メモ</label>
-                            <input type="text" id="recurring-memo-input" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="（任意）">
-                        </div>
-                    </div>
-                    <div id="recurring-list" class="space-y-2">
-                        <!-- JSで動的に生成 -->
                     </div>
                 </div>
             </div>
@@ -1089,12 +1139,12 @@
 
             // 定数
             const FIREBASE_CONFIG = {
-                apiKey: "YOUR_API_KEY",
-                authDomain: "moneydiary-web.firebaseapp.com",
-                projectId: "moneydiary-web",
-                storageBucket: "moneydiary-web.firebasestorage.app",
-                messagingSenderId: "79130877798",
-                appId: "1:79130877798:web:68504c48d434bc815bf2a7"
+                apiKey: "YOUR_FIREBASE_API_KEY",
+                authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+                projectId: "YOUR_FIREBASE_PROJECT_ID",
+                storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
+                messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+                appId: "YOUR_FIREBASE_APP_ID"
             };
             const isFirebaseConfigured = FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.includes('YOUR_API_KEY');
             const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com';
@@ -1248,6 +1298,7 @@
             const photoPreviewModalClose = document.getElementById('photo-preview-close');
             const analysisAiButton = document.getElementById('analysis-ai-button');
             const analysisAiOutput = document.getElementById('analysis-ai-output');
+            const settingsSections = Array.from(document.querySelectorAll('[data-settings-section]'));
 
             // --- 初期化 ---
             function initialize() {
@@ -1260,6 +1311,7 @@
                 renderDiaryList();
                 setDiaryMode(currentDiaryMode);
                 renderSettingsView();
+                setupSettingsAccordions();
                 resetRecurringForm();
                 updateTypeToggleUI();
                 setupEventListeners();
@@ -2070,6 +2122,37 @@ ${diaryLine || '記録なし'}
                 throw new Error(lastError);
             }
 
+            function escapeHtml(text) {
+                return text.replace(/[&<>"']/g, (char) => {
+                    switch (char) {
+                        case '&':
+                            return '&amp;';
+                        case '<':
+                            return '&lt;';
+                        case '>':
+                            return '&gt;';
+                        case '"':
+                            return '&quot;';
+                        case '\'':
+                            return '&#39;';
+                        default:
+                            return char;
+                    }
+                });
+            }
+
+            function renderAiAdvice(text) {
+                if (!analysisAiOutput) return;
+                if (!text) {
+                    analysisAiOutput.textContent = 'アドバイスを取得できませんでした。';
+                    return;
+                }
+                const safe = escapeHtml(text);
+                const bolded = safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                const withLineBreaks = bolded.replace(/\n/g, '<br>');
+                analysisAiOutput.innerHTML = withLineBreaks;
+            }
+
             async function handleAnalysisAdviceRequest() {
                 if (!analysisAiOutput) return;
                 if (!isGeminiConfigured) {
@@ -2085,7 +2168,7 @@ ${diaryLine || '記録なし'}
                 try {
                     const prompt = buildGeminiPrompt(snapshot);
                     const text = await fetchGeminiAdvice(prompt);
-                    analysisAiOutput.textContent = text || 'アドバイスを取得できませんでした。';
+                    renderAiAdvice(text);
                 } catch (error) {
                     console.error('Gemini分析の取得に失敗しました', error);
                     analysisAiOutput.textContent = error?.message
@@ -2642,6 +2725,28 @@ ${diaryLine || '記録なし'}
                     month: 'numeric',
                     day: 'numeric',
                     weekday: 'short'
+                });
+            }
+
+            function setSettingsSectionState(section, isOpen) {
+                const toggle = section.querySelector('[data-settings-toggle]');
+                const content = section.querySelector('.settings-section-content');
+                if (!toggle || !content) return;
+                section.classList.toggle('collapsed', !isOpen);
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            }
+
+            function setupSettingsAccordions() {
+                settingsSections.forEach((section) => {
+                    const toggle = section.querySelector('[data-settings-toggle]');
+                    const content = section.querySelector('.settings-section-content');
+                    if (!toggle || !content) return;
+                    const defaultOpen = section.dataset.defaultOpen === 'true';
+                    setSettingsSectionState(section, defaultOpen);
+                    toggle.addEventListener('click', () => {
+                        const isOpen = !section.classList.contains('collapsed');
+                        setSettingsSectionState(section, !isOpen);
+                    });
                 });
             }
 
