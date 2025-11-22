@@ -416,6 +416,13 @@
         .calendar-day {
             aspect-ratio: 1 / 1;
         }
+        .calendar-day:hover {
+            background-color: var(--color-panel-muted);
+        }
+        body.dark-mode .calendar-day:hover {
+            background-color: #2f3340;
+            color: var(--color-text);
+        }
         .calendar-day.other-month {
             opacity: 0.3;
         }
@@ -571,6 +578,29 @@
         /* 日記モード切替 */
         #diary-mode-toggle button {
             transition: all 0.2s ease;
+        }
+
+        /* カテゴリ編集モーダル */
+        .simple-modal-overlay {
+            background: var(--color-overlay);
+            z-index: 70;
+        }
+        .simple-modal-card {
+            background-color: var(--color-panel);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+            border-radius: 1rem;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.35);
+        }
+        .simple-modal-card input {
+            background-color: var(--color-panel-muted);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+        }
+        .simple-modal-card input:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
         }
     </style>
 </head>
@@ -794,14 +824,13 @@
                         <svg class="chevron w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
                     <div class="settings-section-content space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm text-gray-600">ライト</span>
-                            <label for="theme-toggle" class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="theme-toggle" class="sr-only peer">
-                                <div class="w-16 h-8 bg-gray-300 rounded-full peer-checked:bg-blue-500 transition-colors duration-300"></div>
-                                <div class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 peer-checked:translate-x-8"></div>
-                            </label>
-                            <span class="text-sm text-gray-600">ダーク</span>
+                        <div class="flex items-center gap-2">
+                            <button id="theme-light-btn" type="button" class="theme-toggle-btn flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-gray-100 text-gray-700 text-sm font-medium transition hover:bg-white hover:border-gray-300">
+                                ライト
+                            </button>
+                            <button id="theme-dark-btn" type="button" class="theme-toggle-btn flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-gray-100 text-gray-700 text-sm font-medium transition hover:bg-white hover:border-gray-300">
+                                ダーク
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -882,6 +911,20 @@
                                 <label class="w-24 text-gray-600 font-medium">メモ</label>
                                 <input type="text" id="recurring-memo-input" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="（任意）">
                             </div>
+                            <div class="flex gap-2 items-center">
+                                <label class="w-24 text-gray-600 font-medium">開始日</label>
+                                <input type="date" id="recurring-start-input" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div class="flex gap-2 items-center">
+                                <label class="w-24 text-gray-600 font-medium">終了日</label>
+                                <div class="flex-1 flex gap-2 items-center">
+                                    <input type="date" id="recurring-end-input" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <label class="flex items-center gap-1 text-xs text-gray-600">
+                                        <input type="checkbox" id="recurring-no-end" class="rounded border-gray-300">
+                                        終了なし
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                         <div class="flex justify-end">
                             <button id="recurring-save-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">追加</button>
@@ -953,6 +996,25 @@
             </div>
             <button id="google-login-btn" class="bg-blue-600 text-white px-6 py-3 rounded-full text-sm font-semibold shadow-lg hover:bg-blue-500 transition-colors">Googleでログイン</button>
             <p id="auth-config-warning" class="text-xs text-red-400 hidden">Firebase構成を設定するとログインできます。</p>
+        </div>
+
+        <!-- カテゴリ編集モーダル -->
+        <div id="category-edit-modal" class="hidden fixed inset-0 flex items-center justify-center px-4 simple-modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+            <div class="simple-modal-card w-full max-w-sm p-5 space-y-4">
+                <div class="space-y-1">
+                    <h3 id="category-edit-title" class="text-lg font-semibold">カテゴリ名を編集</h3>
+                    <p id="category-edit-helper" class="text-sm" style="color: var(--color-text-muted);">支出または収入のカテゴリ名を変更します。</p>
+                </div>
+                <div class="space-y-2">
+                    <label for="category-edit-input" class="text-xs font-semibold" style="color: var(--color-text-muted);">カテゴリ名</label>
+                    <input id="category-edit-input" type="text" class="w-full py-2 px-3 rounded-lg" placeholder="新しいカテゴリ名">
+                    <p id="category-edit-error" class="text-xs text-red-500 hidden"></p>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button id="category-edit-cancel" type="button" class="category-action-btn">キャンセル</button>
+                    <button id="category-edit-save" type="button" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">保存</button>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -1146,7 +1208,25 @@
                 messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
                 appId: "YOUR_FIREBASE_APP_ID"
             };
-            const isFirebaseConfigured = FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.includes('YOUR_API_KEY');
+            const FIREBASE_PLACEHOLDERS = [
+                'YOUR_FIREBASE_API_KEY',
+                'YOUR_API_KEY',
+                'YOUR_FIREBASE_AUTH_DOMAIN',
+                'YOUR_AUTH_DOMAIN',
+                'YOUR_FIREBASE_PROJECT_ID',
+                'YOUR_PROJECT_ID',
+                'YOUR_FIREBASE_STORAGE_BUCKET',
+                'YOUR_STORAGE_BUCKET',
+                'YOUR_FIREBASE_MESSAGING_SENDER_ID',
+                'YOUR_MESSAGING_SENDER_ID',
+                'YOUR_FIREBASE_APP_ID',
+                'YOUR_APP_ID'
+            ];
+            const isFirebaseConfigured = Object.values(FIREBASE_CONFIG).every((value) => {
+                return typeof value === 'string'
+                    && value.trim() !== ''
+                    && !FIREBASE_PLACEHOLDERS.some((placeholder) => value.includes(placeholder));
+            });
             const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com';
             const GEMINI_API_VERSION = 'v1beta';
             const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY';
@@ -1189,6 +1269,7 @@
                 },
                 recurringEntries: [] // { id, type, amount, category, memo, day }
             };
+            let categoryEditTarget = { type: null, oldName: null };
             let isDiaryFilterOpen = false;
             let currentDiaryMode = DIARY_MODES.diary;
             let editingTransactionId = null;
@@ -1277,7 +1358,15 @@
             const analysisIncomeEl = document.getElementById('analysis-income');
             const analysisExpenseEl = document.getElementById('analysis-expense');
             const analysisBalanceEl = document.getElementById('analysis-balance');
-            const themeToggle = document.getElementById('theme-toggle');
+            const themeLightBtn = document.getElementById('theme-light-btn');
+            const themeDarkBtn = document.getElementById('theme-dark-btn');
+            const categoryEditModal = document.getElementById('category-edit-modal');
+            const categoryEditTitle = document.getElementById('category-edit-title');
+            const categoryEditHelper = document.getElementById('category-edit-helper');
+            const categoryEditInput = document.getElementById('category-edit-input');
+            const categoryEditError = document.getElementById('category-edit-error');
+            const categoryEditCancel = document.getElementById('category-edit-cancel');
+            const categoryEditSave = document.getElementById('category-edit-save');
             const expenseCategoryList = document.getElementById('expense-category-list');
             const incomeCategoryList = document.getElementById('income-category-list');
             const expenseCategoryInput = document.getElementById('expense-category-input');
@@ -1291,6 +1380,9 @@
             const recurringAmountInput = document.getElementById('recurring-amount-input');
             const recurringCategoryInput = document.getElementById('recurring-category-input');
             const recurringMemoInput = document.getElementById('recurring-memo-input');
+            const recurringStartInput = document.getElementById('recurring-start-input');
+            const recurringEndInput = document.getElementById('recurring-end-input');
+            const recurringNoEndInput = document.getElementById('recurring-no-end');
             const recurringSaveBtn = document.getElementById('recurring-save-btn');
             const recurringListContainer = document.getElementById('recurring-list');
             const photoPreviewModal = document.getElementById('photo-preview-modal');
@@ -1325,6 +1417,11 @@
             // --- データ操作 ---
             function getUserStorageKey() {
                 return currentUser ? `${STORAGE_BASE_KEY}_${currentUser.uid}` : `${STORAGE_BASE_KEY}_guest`;
+            }
+
+            function getSettingsStorageKey(userOverride = null) {
+                const targetUser = userOverride || currentUser;
+                return targetUser && targetUser.uid ? `${SETTINGS_KEY}_${targetUser.uid}` : `${SETTINGS_KEY}_guest`;
             }
 
             function hasSuccessfulAuthHistory() {
@@ -1521,8 +1618,14 @@
             }
 
             function handleGlobalKeydown(event) {
-                if (event.key === 'Escape' && datePickerModal && !datePickerModal.classList.contains('hidden')) {
-                    closeDatePicker();
+                if (event.key === 'Escape') {
+                    if (categoryEditModal && !categoryEditModal.classList.contains('hidden')) {
+                        closeCategoryEditModal();
+                        return;
+                    }
+                    if (datePickerModal && !datePickerModal.classList.contains('hidden')) {
+                        closeDatePicker();
+                    }
                 }
             }
 
@@ -1545,6 +1648,8 @@
                             setAuthSuccessFlag(true);
                             showLoadingScreen('データを読み込んでいます...');
                             currentUser = user;
+                            loadSettings(currentUser);
+                            await hydrateSettingsFromCloud(currentUser);
                             await loadRecords();
                             renderCalendar();
                             renderAnalysis();
@@ -1557,6 +1662,7 @@
                         } else {
                             setAuthSuccessFlag(false);
                             currentUser = null;
+                            loadSettings();
                             records = {};
                             renderCalendar();
                             renderAnalysis();
@@ -1670,29 +1776,72 @@
                 };
             }
 
-            function loadSettings() {
+            function mergeSettings(base, source) {
+                const merged = { ...base, categories: { ...base.categories }, recurringEntries: Array.isArray(base.recurringEntries) ? [...base.recurringEntries] : [] };
+                if (!source) return merged;
+                merged.theme = source.theme === 'dark' ? 'dark' : merged.theme;
+                merged.categories.expense = Array.isArray(source.categories?.expense) && source.categories.expense.length > 0
+                    ? [...source.categories.expense]
+                    : merged.categories.expense;
+                merged.categories.income = Array.isArray(source.categories?.income) && source.categories.income.length > 0
+                    ? [...source.categories.income]
+                    : merged.categories.income;
+                merged.recurringEntries = Array.isArray(source.recurringEntries) ? [...source.recurringEntries] : merged.recurringEntries;
+                return merged;
+            }
+
+            function loadSettings(userOverride = null) {
                 const defaults = getDefaultSettings();
+                const storageKey = getSettingsStorageKey(userOverride);
+                let loaded = mergeSettings(defaults, null);
                 try {
-                    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY));
-                    if (saved) {
-                        defaults.theme = saved.theme === 'dark' ? 'dark' : 'light';
-                        defaults.categories.expense = Array.isArray(saved.categories?.expense) && saved.categories.expense.length > 0
-                            ? saved.categories.expense
-                            : defaults.categories.expense;
-                        defaults.categories.income = Array.isArray(saved.categories?.income) && saved.categories.income.length > 0
-                            ? saved.categories.income
-                            : defaults.categories.income;
-                        defaults.recurringEntries = Array.isArray(saved.recurringEntries) ? saved.recurringEntries : defaults.recurringEntries;
+                    let raw = localStorage.getItem(storageKey);
+                    if (!raw && storageKey !== SETTINGS_KEY) {
+                        raw = localStorage.getItem(SETTINGS_KEY); // 旧キーからの移行用
+                    }
+                    if (raw) {
+                        const saved = JSON.parse(raw);
+                        loaded = mergeSettings(loaded, saved);
                     }
                 } catch (error) {
                     console.warn('設定の読み込みに失敗しました', error);
                 }
-                appSettings = defaults;
+                appSettings = loaded;
                 applyTheme(appSettings.theme);
             }
 
-            function saveSettings() {
-                localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
+            async function hydrateSettingsFromCloud(user) {
+                if (!user || !db) return;
+                try {
+                    const doc = await db.collection('users').doc(user.uid).get();
+                    const cloudSettings = doc.exists ? doc.data().settings : null;
+                    if (cloudSettings) {
+                        const defaults = getDefaultSettings();
+                        const merged = mergeSettings(mergeSettings(defaults, appSettings), cloudSettings);
+                        appSettings = merged;
+                        saveSettings({ syncCloud: false, userOverride: user });
+                        applyTheme(appSettings.theme);
+                    }
+                } catch (error) {
+                    console.error('設定の取得に失敗しました', error);
+                }
+            }
+
+            function saveSettings(options = {}) {
+                const { syncCloud = true, userOverride = null } = options;
+                const storageKey = getSettingsStorageKey(userOverride);
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify(appSettings));
+                } catch (error) {
+                    console.warn('設定の保存に失敗しました', error);
+                }
+                if (syncCloud && currentUser && db) {
+                    db.collection('users').doc(currentUser.uid).set({
+                        settings: appSettings
+                    }, { merge: true }).catch((error) => {
+                        console.error('設定の保存に失敗しました', error);
+                    });
+                }
             }
 
             function applyTheme(theme) {
@@ -1711,6 +1860,41 @@
                     if (Chart.defaults.plugins && Chart.defaults.plugins.legend && Chart.defaults.plugins.legend.labels) {
                         Chart.defaults.plugins.legend.labels.color = textColor;
                     }
+                }
+            }
+
+            function updateThemeControls() {
+                if (!themeLightBtn || !themeDarkBtn) return;
+                const isDark = appSettings.theme === 'dark';
+                const activeClasses = ['bg-blue-600', 'text-white', 'shadow', 'border-blue-600'];
+                const inactiveClasses = ['bg-gray-100', 'text-gray-700', 'border-gray-200'];
+
+                [themeLightBtn, themeDarkBtn].forEach((btn) => {
+                    btn.classList.remove(...activeClasses, ...inactiveClasses);
+                    btn.classList.add('theme-toggle-btn', 'flex-1', 'px-3', 'py-2', 'rounded-lg', 'border', 'text-sm', 'font-medium', 'transition');
+                });
+
+                if (isDark) {
+                    themeDarkBtn.classList.add(...activeClasses);
+                    themeLightBtn.classList.add(...inactiveClasses);
+                } else {
+                    themeLightBtn.classList.add(...activeClasses);
+                    themeDarkBtn.classList.add(...inactiveClasses);
+                }
+            }
+
+            function setThemePreference(theme) {
+                const nextTheme = theme === 'dark' ? 'dark' : 'light';
+                if (appSettings.theme === nextTheme) {
+                    updateThemeControls();
+                    return;
+                }
+                appSettings.theme = nextTheme;
+                applyTheme(nextTheme);
+                updateThemeControls();
+                saveSettings();
+                if (currentView === 'analysis') {
+                    renderAnalysis();
                 }
             }
 
@@ -1766,7 +1950,7 @@
             // カレンダーの日付セル作成
             function createDayElement(day, isOtherMonth, record, dateStr) {
                 const dayEl = document.createElement('div');
-                dayEl.className = 'calendar-day p-1 text-sm cursor-pointer relative flex flex-col items-center justify-start rounded-lg hover:bg-blue-50';
+                dayEl.className = 'calendar-day p-1 text-sm cursor-pointer relative flex flex-col items-center justify-start rounded-lg';
                 
                 if (isOtherMonth) {
                     dayEl.classList.add('other-month');
@@ -2752,9 +2936,7 @@ ${diaryLine || '記録なし'}
 
             function renderSettingsView() {
                 updateAccountInfoUI();
-                if (themeToggle) {
-                    themeToggle.checked = appSettings.theme === 'dark';
-                }
+                updateThemeControls();
                 renderCategoryList('expense', expenseCategoryList, expenseCategoryCount);
                 renderCategoryList('income', incomeCategoryList, incomeCategoryCount);
                 renderRecurringList();
@@ -2808,6 +2990,15 @@ ${diaryLine || '記録なし'}
 
                     actions.appendChild(upBtn);
                     actions.appendChild(downBtn);
+
+                    const editBtn = document.createElement('button');
+                    editBtn.type = 'button';
+                    editBtn.className = 'category-action-btn';
+                    editBtn.dataset.categoryAction = 'edit';
+                    editBtn.dataset.categoryName = name;
+                    editBtn.title = '名前を編集';
+                    editBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 11l6.232-6.232a2 2 0 012.828 0l1.172 1.172a2 2 0 010 2.828L13 15l-4 1 1-4z"></path></svg>';
+                    actions.appendChild(editBtn);
 
                     if (canRemove) {
                         const removeBtn = document.createElement('button');
@@ -2903,6 +3094,105 @@ ${diaryLine || '記録なし'}
                 renderSettingsView();
                 updateCategorySelect();
             }
+            
+            function openCategoryEditModal(type, name) {
+                if (!categoryEditModal || !categoryEditInput) return;
+                categoryEditTarget = { type, oldName: name };
+                if (categoryEditTitle) {
+                    categoryEditTitle.textContent = `${type === 'income' ? '収入' : '支出'}カテゴリを編集`;
+                }
+                if (categoryEditHelper) {
+                    categoryEditHelper.textContent = `${name} の名前を変更します`;
+                }
+                categoryEditInput.value = name;
+                categoryEditInput.focus();
+                categoryEditInput.setSelectionRange(0, name.length);
+                if (categoryEditError) {
+                    categoryEditError.textContent = '';
+                    categoryEditError.classList.add('hidden');
+                }
+                categoryEditModal.classList.remove('hidden');
+                categoryEditModal.setAttribute('aria-hidden', 'false');
+            }
+
+            function closeCategoryEditModal() {
+                categoryEditTarget = { type: null, oldName: null };
+                if (categoryEditInput) {
+                    categoryEditInput.value = '';
+                }
+                if (categoryEditError) {
+                    categoryEditError.textContent = '';
+                    categoryEditError.classList.add('hidden');
+                }
+                if (categoryEditModal) {
+                    categoryEditModal.classList.add('hidden');
+                    categoryEditModal.setAttribute('aria-hidden', 'true');
+                }
+            }
+
+            function showCategoryEditError(message) {
+                if (!categoryEditError) return;
+                categoryEditError.textContent = message;
+                categoryEditError.classList.remove('hidden');
+            }
+
+            async function performCategoryRename(type, oldName, newName) {
+                const categories = getCategoryOptions(type);
+                if (!newName) {
+                    showCategoryEditError('カテゴリ名を入力してください');
+                    return;
+                }
+                if (newName === oldName) {
+                    closeCategoryEditModal();
+                    return;
+                }
+                const normalized = newName.toLowerCase();
+                const exists = categories.some(cat => cat.toLowerCase() === normalized);
+                if (exists) {
+                    showCategoryEditError('同じ名前のカテゴリが既にあります');
+                    return;
+                }
+
+                appSettings.categories[type] = categories.map(cat => cat === oldName ? newName : cat);
+
+                // 既存トランザクションのカテゴリ名を更新
+                Object.values(records || {}).forEach((dayRecord) => {
+                    if (!dayRecord || !Array.isArray(dayRecord.transactions)) return;
+                    dayRecord.transactions = dayRecord.transactions.map((t) => {
+                        if (t && t.type === type && t.category === oldName) {
+                            return { ...t, category: newName };
+                        }
+                        return t;
+                    });
+                });
+
+                // 定額エントリのカテゴリ名を更新
+                if (Array.isArray(appSettings.recurringEntries)) {
+                    appSettings.recurringEntries = appSettings.recurringEntries.map((entry) => {
+                        if (entry && entry.type === type && entry.category === oldName) {
+                            return { ...entry, category: newName };
+                        }
+                        return entry;
+                    });
+                }
+
+                renderSettingsView();
+                updateCategorySelect();
+                updateRecurringCategoryOptions();
+                renderDiaryFinanceList();
+                renderDailyTransactions(getDayRecord(selectedDateStr).transactions);
+                renderCalendar();
+                renderAnalysis();
+                saveSettings();
+                await saveRecords();
+                closeCategoryEditModal();
+            }
+
+            async function confirmCategoryEdit() {
+                if (!categoryEditTarget.type || !categoryEditInput) return;
+                const newName = categoryEditInput.value.trim();
+                await performCategoryRename(categoryEditTarget.type, categoryEditTarget.oldName, newName);
+            }
 
             function updateRecurringCategoryOptions() {
                 if (!recurringCategoryInput) return;
@@ -2936,6 +3226,9 @@ ${diaryLine || '記録なし'}
                 if (recurringDayInput) recurringDayInput.value = '';
                 if (recurringAmountInput) recurringAmountInput.value = '';
                 if (recurringMemoInput) recurringMemoInput.value = '';
+                if (recurringStartInput) recurringStartInput.value = formatDate(new Date());
+                if (recurringEndInput) recurringEndInput.value = '';
+                if (recurringNoEndInput) recurringNoEndInput.checked = true;
                 updateRecurringCategoryOptions();
             }
 
@@ -2946,6 +3239,9 @@ ${diaryLine || '記録なし'}
                 const amount = parseInt(recurringAmountInput.value, 10);
                 const category = recurringCategoryInput.value;
                 const memo = recurringMemoInput?.value?.trim() || '';
+                const startDateStr = recurringStartInput?.value || '';
+                const endDateStr = recurringEndInput?.value || '';
+                const noEnd = recurringNoEndInput?.checked;
 
                 if (!Number.isFinite(day) || day < 1 || day > 31) {
                     alert('1〜31の間で日付を入力してください。');
@@ -2959,6 +3255,29 @@ ${diaryLine || '記録なし'}
                     alert('カテゴリを選択してください。');
                     return;
                 }
+                if (!startDateStr) {
+                    alert('開始日を入力してください。');
+                    return;
+                }
+
+                const startDateObj = new Date(startDateStr);
+                if (Number.isNaN(startDateObj.getTime())) {
+                    alert('有効な開始日を入力してください。');
+                    return;
+                }
+
+                let endDateObj = null;
+                if (!noEnd && endDateStr) {
+                    endDateObj = new Date(endDateStr);
+                    if (Number.isNaN(endDateObj.getTime())) {
+                        alert('有効な終了日を入力してください。');
+                        return;
+                    }
+                    if (endDateObj < startDateObj) {
+                        alert('終了日は開始日以降に設定してください。');
+                        return;
+                    }
+                }
 
                 const entry = {
                     id: editingRecurringId || `rec-${Date.now()}`,
@@ -2966,7 +3285,9 @@ ${diaryLine || '記録なし'}
                     day,
                     amount,
                     category,
-                    memo
+                    memo,
+                    startDate: formatDate(startDateObj),
+                    endDate: endDateObj ? formatDate(endDateObj) : null
                 };
 
                 const entries = Array.isArray(appSettings.recurringEntries) ? [...appSettings.recurringEntries] : [];
@@ -3007,6 +3328,9 @@ ${diaryLine || '記録なし'}
                 if (recurringAmountInput) recurringAmountInput.value = entry.amount;
                 if (recurringCategoryInput) recurringCategoryInput.value = entry.category;
                 if (recurringMemoInput) recurringMemoInput.value = entry.memo || '';
+                if (recurringStartInput) recurringStartInput.value = entry.startDate || formatDate(new Date());
+                if (recurringEndInput) recurringEndInput.value = entry.endDate || '';
+                if (recurringNoEndInput) recurringNoEndInput.checked = !entry.endDate;
             }
 
             function renderRecurringList() {
@@ -3025,33 +3349,46 @@ ${diaryLine || '記録なし'}
                 entries.forEach(entry => {
                     const row = document.createElement('div');
                     row.className = 'flex items-center justify-between gap-3 border border-gray-200 rounded-lg px-3 py-2 bg-gray-50';
+                    row.style.backgroundColor = 'var(--color-panel-muted)';
+                    row.style.borderColor = 'var(--color-border)';
                     const left = document.createElement('div');
                     left.className = 'space-y-0.5';
                     const title = document.createElement('p');
                     title.className = 'text-sm font-semibold text-gray-800';
+                    title.style.color = 'var(--color-text)';
                     title.textContent = `${entry.day}日: ${entry.category}`;
                     const meta = document.createElement('p');
                     meta.className = 'text-xs text-gray-500';
+                    meta.style.color = 'var(--color-text-muted)';
                     const typeLabel = entry.type === 'income' ? '収入' : '支出';
+                    const startText = entry.startDate ? entry.startDate : '未設定';
+                    const endText = entry.endDate ? entry.endDate : 'なし';
                     meta.textContent = `${typeLabel} / ¥${Number(entry.amount || 0).toLocaleString()} ${entry.memo ? ` / ${entry.memo}` : ''}`;
+
+                    const period = document.createElement('p');
+                    period.className = 'text-xs';
+                    period.style.color = 'var(--color-text-muted)';
+                    period.textContent = `期間: ${startText} 〜 ${endText}`;
+
                     left.appendChild(title);
                     left.appendChild(meta);
+                    left.appendChild(period);
 
                     const actions = document.createElement('div');
-                    actions.className = 'flex items-center gap-2 text-sm';
+                    actions.className = 'flex items-center gap-1 text-sm';
                     const editBtn = document.createElement('button');
                     editBtn.type = 'button';
-                    editBtn.className = 'px-2 py-1 rounded-md bg-white border border-gray-200 hover:border-gray-300';
+                    editBtn.className = 'category-action-btn';
                     editBtn.dataset.recurringAction = 'edit';
                     editBtn.dataset.recurringId = entry.id;
-                    editBtn.textContent = '編集';
+                    editBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 11l6.232-6.232a2 2 0 012.828 0l1.172 1.172a2 2 0 010 2.828L13 15l-4 1 1-4z"></path></svg>';
 
                     const deleteBtn = document.createElement('button');
                     deleteBtn.type = 'button';
-                    deleteBtn.className = 'px-2 py-1 rounded-md bg-red-50 text-red-600 border border-red-100 hover:bg-red-100';
+                    deleteBtn.className = 'category-action-btn text-red-500 hover:text-red-600';
                     deleteBtn.dataset.recurringAction = 'delete';
                     deleteBtn.dataset.recurringId = entry.id;
-                    deleteBtn.textContent = '削除';
+                    deleteBtn.innerHTML = '&times;';
 
                     actions.appendChild(editBtn);
                     actions.appendChild(deleteBtn);
@@ -3070,23 +3407,36 @@ ${diaryLine || '記録なし'}
                 const year = baseDate.getFullYear();
                 const month = baseDate.getMonth();
                 const lastDay = new Date(year, month + 1, 0).getDate();
+                const today = new Date();
+                const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
                 let updated = false;
 
                 entries.forEach(entry => {
                     const targetDay = Math.min(entry.day, lastDay);
-                    const dateStr = formatDate(new Date(year, month, targetDay));
+                    const targetDate = new Date(year, month, targetDay);
+                    const dateStr = formatDate(targetDate);
                     const record = getDayRecord(dateStr);
-                    const exists = record.transactions.some(t => t.recurringId === entry.id);
-                    if (!exists) {
-                        record.transactions.push({
-                            id: `${entry.id}-${year}-${month + 1}`,
+                    const existingIndex = record.transactions.findIndex(t => t.recurringId === entry.id);
+
+                    const isActive = isRecurringActiveOnDate(entry, targetDate, todayDate);
+                    if (isActive) {
+                        const payload = {
+                            id: `${entry.id}-${dateStr}`,
                             type: entry.type,
                             amount: entry.amount,
                             category: entry.category,
                             memo: entry.memo || '',
                             recurringId: entry.id,
                             createdAt: Date.now()
-                        });
+                        };
+                        if (existingIndex >= 0) {
+                            record.transactions[existingIndex] = { ...record.transactions[existingIndex], ...payload };
+                        } else {
+                            record.transactions.push(payload);
+                        }
+                        updated = true;
+                    } else if (existingIndex >= 0) {
+                        record.transactions.splice(existingIndex, 1);
                         updated = true;
                     }
                 });
@@ -3094,6 +3444,26 @@ ${diaryLine || '記録なし'}
                 if (updated) {
                     saveRecords();
                 }
+            }
+
+            function isRecurringActiveOnDate(entry, targetDate, todayDate = new Date()) {
+                const dateOnly = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+                const today = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
+                if (dateOnly > today) return false; // 未来日は反映しない
+
+                if (entry.startDate) {
+                    const start = new Date(entry.startDate);
+                    if (!Number.isNaN(start.getTime()) && dateOnly < new Date(start.getFullYear(), start.getMonth(), start.getDate())) {
+                        return false;
+                    }
+                }
+                if (entry.endDate) {
+                    const end = new Date(entry.endDate);
+                    if (!Number.isNaN(end.getTime()) && dateOnly > new Date(end.getFullYear(), end.getMonth(), end.getDate())) {
+                        return false;
+                    }
+                }
+                return true;
             }
 
             // 感情セレクター描画
@@ -3627,18 +3997,50 @@ ${diaryLine || '記録なし'}
                 }
 
                 // テーマ・カテゴリ設定
-                if (themeToggle) {
-                    themeToggle.addEventListener('change', (event) => {
-                        appSettings.theme = event.target.checked ? 'dark' : 'light';
-                        applyTheme(appSettings.theme);
-                        saveSettings();
-                        if (currentView === 'analysis') {
-                            renderAnalysis();
+                if (themeLightBtn) {
+                    themeLightBtn.addEventListener('click', () => setThemePreference('light'));
+                }
+                if (themeDarkBtn) {
+                    themeDarkBtn.addEventListener('click', () => setThemePreference('dark'));
+                }
+
+                if (categoryEditCancel) {
+                    categoryEditCancel.addEventListener('click', closeCategoryEditModal);
+                }
+                if (categoryEditSave) {
+                    categoryEditSave.addEventListener('click', confirmCategoryEdit);
+                }
+                if (categoryEditModal) {
+                    categoryEditModal.addEventListener('click', (event) => {
+                        if (event.target === categoryEditModal) {
+                            closeCategoryEditModal();
+                        }
+                    });
+                }
+                if (categoryEditInput) {
+                    categoryEditInput.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter') {
+                            event.preventDefault();
+                            confirmCategoryEdit();
                         }
                     });
                 }
                 if (recurringTypeSelect) {
                     recurringTypeSelect.addEventListener('change', updateRecurringCategoryOptions);
+                }
+                if (recurringNoEndInput && recurringEndInput) {
+                    recurringNoEndInput.addEventListener('change', () => {
+                        if (recurringNoEndInput.checked) {
+                            recurringEndInput.value = '';
+                        }
+                    });
+                }
+                if (recurringEndInput && recurringNoEndInput) {
+                    recurringEndInput.addEventListener('input', () => {
+                        if (recurringEndInput.value) {
+                            recurringNoEndInput.checked = false;
+                        }
+                    });
                 }
                 if (recurringSaveBtn) {
                     recurringSaveBtn.addEventListener('click', handleRecurringSave);
@@ -3692,6 +4094,8 @@ ${diaryLine || '記録なし'}
                             handleCategoryMove('expense', name, -1);
                         } else if (action === 'move-down') {
                             handleCategoryMove('expense', name, 1);
+                        } else if (action === 'edit') {
+                            openCategoryEditModal('expense', name);
                         }
                     });
                 }
@@ -3707,6 +4111,8 @@ ${diaryLine || '記録なし'}
                             handleCategoryMove('income', name, -1);
                         } else if (action === 'move-down') {
                             handleCategoryMove('income', name, 1);
+                        } else if (action === 'edit') {
+                            openCategoryEditModal('income', name);
                         }
                     });
                 }
