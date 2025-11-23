@@ -661,6 +661,16 @@
                             <p id="summary-balance" class="text-lg font-bold text-gray-800">¥0</p>
                         </div>
                     </div>
+                    <div class="mt-2 space-y-1">
+                        <div class="flex items-center justify-between text-xs text-gray-500">
+                            <span>月の予算</span>
+                            <span id="summary-budget-label" class="font-semibold text-gray-700">未設定</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div id="summary-budget-bar" class="h-1.5 rounded-full bg-gray-200 transition-all duration-300" style="width:0%;"></div>
+                        </div>
+                        <p id="summary-budget-remaining" class="text-xs text-gray-500">設定すると今月の進捗が見られます。</p>
+                    </div>
                 </div>
             </div>
 
@@ -701,6 +711,7 @@
                         <p id="analysis-balance" class="text-lg font-bold text-gray-800">¥0</p>
                     </div>
                 </div>
+                <p id="analysis-budget-note" class="text-xs text-gray-500 text-center"></p>
 
                 <!-- 支出カテゴリー（円グラフ） -->
                 <div class="analysis-card p-4">
@@ -831,6 +842,28 @@
                             <button id="theme-dark-btn" type="button" class="theme-toggle-btn flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-gray-100 text-gray-700 text-sm font-medium transition hover:bg-white hover:border-gray-300">
                                 ダーク
                             </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 月の予算 -->
+                <div class="settings-card p-4 space-y-3" data-settings-section data-default-open="false">
+                    <button type="button" class="settings-section-header" data-settings-toggle>
+                        <div>
+                            <h3 class="text-md font-semibold text-gray-800">月の予算</h3>
+                            <p class="text-sm text-gray-500">毎月の支出上限を設定して進捗をチェック</p>
+                        </div>
+                        <svg class="chevron w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="settings-section-content space-y-3">
+                        <div class="space-y-1">
+                            <label for="monthly-budget-input" class="text-sm font-medium text-gray-600">月の予算 (円)</label>
+                            <input type="number" id="monthly-budget-input" class="w-full mt-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" placeholder="例: 150000">
+                            <p class="text-xs text-gray-500" id="monthly-budget-status">予算が未設定です。</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="monthly-budget-save" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap">保存</button>
+                            <button id="monthly-budget-clear" class="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 whitespace-nowrap">リセット</button>
                         </div>
                     </div>
                 </div>
@@ -1267,7 +1300,8 @@
                     expense: [...DEFAULT_CATEGORIES.expense],
                     income: [...DEFAULT_CATEGORIES.income]
                 },
-                recurringEntries: [] // { id, type, amount, category, memo, day }
+                recurringEntries: [], // { id, type, amount, category, memo, day }
+                monthlyBudget: null
             };
             let categoryEditTarget = { type: null, oldName: null };
             let isDiaryFilterOpen = false;
@@ -1390,6 +1424,14 @@
             const photoPreviewModalClose = document.getElementById('photo-preview-close');
             const analysisAiButton = document.getElementById('analysis-ai-button');
             const analysisAiOutput = document.getElementById('analysis-ai-output');
+            const summaryBudgetLabel = document.getElementById('summary-budget-label');
+            const summaryBudgetRemaining = document.getElementById('summary-budget-remaining');
+            const summaryBudgetBar = document.getElementById('summary-budget-bar');
+            const analysisBudgetNote = document.getElementById('analysis-budget-note');
+            const monthlyBudgetInput = document.getElementById('monthly-budget-input');
+            const monthlyBudgetSaveBtn = document.getElementById('monthly-budget-save');
+            const monthlyBudgetClearBtn = document.getElementById('monthly-budget-clear');
+            const monthlyBudgetStatus = document.getElementById('monthly-budget-status');
             const settingsSections = Array.from(document.querySelectorAll('[data-settings-section]'));
 
             // --- 初期化 ---
@@ -1772,12 +1814,18 @@
                         expense: [...DEFAULT_CATEGORIES.expense],
                         income: [...DEFAULT_CATEGORIES.income]
                     },
-                    recurringEntries: []
+                    recurringEntries: [],
+                    monthlyBudget: null
                 };
             }
 
             function mergeSettings(base, source) {
-                const merged = { ...base, categories: { ...base.categories }, recurringEntries: Array.isArray(base.recurringEntries) ? [...base.recurringEntries] : [] };
+                const merged = {
+                    ...base,
+                    categories: { ...base.categories },
+                    recurringEntries: Array.isArray(base.recurringEntries) ? [...base.recurringEntries] : [],
+                    monthlyBudget: base.monthlyBudget ?? null
+                };
                 if (!source) return merged;
                 merged.theme = source.theme === 'dark' ? 'dark' : merged.theme;
                 merged.categories.expense = Array.isArray(source.categories?.expense) && source.categories.expense.length > 0
@@ -1787,7 +1835,23 @@
                     ? [...source.categories.income]
                     : merged.categories.income;
                 merged.recurringEntries = Array.isArray(source.recurringEntries) ? [...source.recurringEntries] : merged.recurringEntries;
+                merged.monthlyBudget = Number.isFinite(source.monthlyBudget) && source.monthlyBudget > 0
+                    ? Number(source.monthlyBudget)
+                    : merged.monthlyBudget;
                 return merged;
+            }
+
+            function getMonthlyBudget() {
+                const value = Number(appSettings.monthlyBudget);
+                if (Number.isFinite(value) && value > 0) {
+                    return Math.round(value);
+                }
+                return null;
+            }
+
+            function formatCurrency(value) {
+                const num = Number.isFinite(value) ? value : 0;
+                return `¥${num.toLocaleString()}`;
             }
 
             function loadSettings(userOverride = null) {
@@ -2018,11 +2082,7 @@
                 return dayEl;
             }
 
-            // 月次サマリー描画
-            function renderMonthSummary() {
-                const year = currentDate.getFullYear();
-                const month = currentDate.getMonth();
-                
+            function getMonthTotals(year, month) {
                 let totalIncome = 0;
                 let totalExpense = 0;
 
@@ -2039,9 +2099,54 @@
                     }
                 }
 
-                document.getElementById('summary-income').textContent = `¥${totalIncome.toLocaleString()}`;
-                document.getElementById('summary-expense').textContent = `¥${totalExpense.toLocaleString()}`;
-                document.getElementById('summary-balance').textContent = `¥${(totalIncome - totalExpense).toLocaleString()}`;
+                return { income: totalIncome, expense: totalExpense };
+            }
+
+            function getBudgetStatus(expenseTotal = 0) {
+                const budget = getMonthlyBudget();
+                if (!budget) return null;
+                const spent = Number(expenseTotal) || 0;
+                const remaining = budget - spent;
+                const usedPercent = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+                return { amount: budget, remaining, usedPercent, spent, isOver: remaining < 0 };
+            }
+
+            function updateBudgetSummary(totals) {
+                if (!summaryBudgetLabel || !summaryBudgetRemaining || !summaryBudgetBar) return;
+                const status = getBudgetStatus(totals?.expense || 0);
+                if (!status) {
+                    summaryBudgetLabel.textContent = '未設定';
+                    summaryBudgetRemaining.textContent = '設定すると今月の進捗が見られます。';
+                    summaryBudgetBar.style.width = '0%';
+                    summaryBudgetBar.classList.remove('bg-blue-600', 'bg-red-500');
+                    summaryBudgetBar.classList.add('bg-gray-200');
+                    return;
+                }
+
+                summaryBudgetLabel.textContent = formatCurrency(status.amount);
+                const usage = Math.max(0, Math.min(status.usedPercent, 999));
+                summaryBudgetBar.style.width = `${Math.min(usage, 100)}%`;
+                summaryBudgetBar.classList.remove('bg-gray-200');
+                summaryBudgetBar.classList.remove('bg-blue-600', 'bg-red-500');
+                summaryBudgetBar.classList.add(status.isOver ? 'bg-red-500' : 'bg-blue-600');
+
+                if (status.isOver) {
+                    summaryBudgetRemaining.textContent = `${formatCurrency(Math.abs(status.remaining))}オーバー (${usage}% 使用)`;
+                } else {
+                    summaryBudgetRemaining.textContent = `残り ${formatCurrency(status.remaining)} (${usage}% 使用)`;
+                }
+            }
+
+            // 月次サマリー描画
+            function renderMonthSummary() {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                const totals = getMonthTotals(year, month);
+
+                document.getElementById('summary-income').textContent = `¥${totals.income.toLocaleString()}`;
+                document.getElementById('summary-expense').textContent = `¥${totals.expense.toLocaleString()}`;
+                document.getElementById('summary-balance').textContent = `¥${(totals.income - totals.expense).toLocaleString()}`;
+                updateBudgetSummary(totals);
             }
             
             // 集計画面描画 (ディスパッチャ)
@@ -2068,6 +2173,7 @@
                 }
 
                 updateAnalysisSummary(summary);
+                updateAnalysisBudgetNote(summary);
             }
 
             function updateAnalysisSummary(summary = { income: 0, expense: 0 }) {
@@ -2088,6 +2194,28 @@
                 } else {
                     analysisBalanceEl.classList.add('text-gray-800');
                 }
+            }
+
+            function updateAnalysisBudgetNote(summary = { expense: 0 }) {
+                if (!analysisBudgetNote) return;
+                if (currentAnalysisView !== 'month') {
+                    analysisBudgetNote.classList.add('hidden');
+                    analysisBudgetNote.textContent = '';
+                    return;
+                }
+
+                analysisBudgetNote.classList.remove('hidden');
+                const status = getBudgetStatus(summary.expense || 0);
+                if (!status) {
+                    analysisBudgetNote.textContent = '月の予算は未設定です。設定タブで設定すると進捗が表示されます。';
+                    return;
+                }
+
+                const usage = Math.max(0, Math.min(status.usedPercent, 999));
+                const statusText = status.isOver
+                    ? `${formatCurrency(Math.abs(status.remaining))}オーバー`
+                    : `残り ${formatCurrency(status.remaining)}`;
+                analysisBudgetNote.textContent = `予算 ${formatCurrency(status.amount)} / 使った ${formatCurrency(summary.expense || 0)}（${usage}%）・${statusText}`;
             }
 
             function getCurrentAnalysisRange() {
@@ -2159,6 +2287,18 @@
                 const averageExpense = daySet.size > 0 ? Math.round(totalExpense / daySet.size) : 0;
                 const averageIncome = daySet.size > 0 ? Math.round(totalIncome / daySet.size) : 0;
                 const calmDays = Object.entries(perDayTotals).filter(([, totals]) => totals.expense === 0 && totals.income === 0).length;
+                let budget = null;
+                if (currentAnalysisView === 'month') {
+                    const status = getBudgetStatus(totalExpense);
+                    if (status) {
+                        budget = {
+                            amount: status.amount,
+                            remaining: status.remaining,
+                            usedPercent: status.usedPercent,
+                            spent: status.spent
+                        };
+                    }
+                }
 
                 return {
                     label: range.label,
@@ -2180,7 +2320,8 @@
                         memo: notableBigExpense.memo
                     } : null,
                     moods: moodCounts,
-                    diaries
+                    diaries,
+                    budget
                 };
             }
 
@@ -2195,6 +2336,9 @@
                 const biggestExpenseLine = snapshot.biggestExpense
                     ? `${snapshot.biggestExpense.date}「${snapshot.biggestExpense.category}」で${snapshot.biggestExpense.amount}円 ${snapshot.biggestExpense.memo || ''}`
                     : '特筆すべき大きな支出はありません';
+                const budgetLine = snapshot.budget
+                    ? `- 月の予算: ${snapshot.budget.amount}円 / 支出: ${snapshot.budget.spent}円 / 残り: ${snapshot.budget.remaining}円`
+                    : '- 月の予算: 設定なし';
 
                 return `あなたは日本語で答えるお金と生活のコーチです。以下は日記と家計簿のスナップショットです。節約や使い方の改善策に加え、続けたい良い習慣も入れてください。
 
@@ -2208,6 +2352,7 @@
 - 収支: ${snapshot.net}円
 - 定額記録: 収入${snapshot.recurringCount.income || 0}件 / 支出${snapshot.recurringCount.expense || 0}件
 - 最も大きな支出: ${biggestExpenseLine}
+${budgetLine}
 
 ### 傾向
 - 主な支出カテゴリ: ${categoryLine}
@@ -2325,16 +2470,56 @@ ${diaryLine || '記録なし'}
                 });
             }
 
+            function applyBasicFormatting(text) {
+                return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            }
+
             function renderAiAdvice(text) {
                 if (!analysisAiOutput) return;
                 if (!text) {
                     analysisAiOutput.textContent = 'アドバイスを取得できませんでした。';
                     return;
                 }
-                const safe = escapeHtml(text);
-                const bolded = safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-                const withLineBreaks = bolded.replace(/\n/g, '<br>');
-                analysisAiOutput.innerHTML = withLineBreaks;
+                const lines = text.split('\n');
+                const htmlParts = [];
+                let inList = false;
+
+                const closeList = () => {
+                    if (inList) {
+                        htmlParts.push('</ul>');
+                        inList = false;
+                    }
+                };
+
+                lines.forEach((line) => {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('### ')) {
+                        closeList();
+                        const content = applyBasicFormatting(escapeHtml(trimmed.replace(/^###\s+/, '')));
+                        htmlParts.push(`<div class="font-semibold text-gray-800">${content}</div>`);
+                        return;
+                    }
+                    if (/^[-*]\s+/.test(trimmed)) {
+                        if (!inList) {
+                            htmlParts.push('<ul class="list-disc list-inside space-y-1">');
+                            inList = true;
+                        }
+                        const content = applyBasicFormatting(escapeHtml(trimmed.replace(/^[-*]\s+/, '')));
+                        htmlParts.push(`<li>${content}</li>`);
+                        return;
+                    }
+                    if (trimmed === '') {
+                        closeList();
+                        htmlParts.push('<br>');
+                        return;
+                    }
+
+                    closeList();
+                    const content = applyBasicFormatting(escapeHtml(trimmed));
+                    htmlParts.push(`<p class="mb-1">${content}</p>`);
+                });
+                closeList();
+                analysisAiOutput.innerHTML = htmlParts.join('\n');
             }
 
             async function handleAnalysisAdviceRequest() {
@@ -2937,11 +3122,21 @@ ${diaryLine || '記録なし'}
             function renderSettingsView() {
                 updateAccountInfoUI();
                 updateThemeControls();
+                renderBudgetSetting();
                 renderCategoryList('expense', expenseCategoryList, expenseCategoryCount);
                 renderCategoryList('income', incomeCategoryList, incomeCategoryCount);
                 renderRecurringList();
                 updateRecurringCategoryOptions();
                 populateFinanceCategoryFilter();
+            }
+
+            function renderBudgetSetting() {
+                if (!monthlyBudgetInput || !monthlyBudgetStatus) return;
+                const budget = getMonthlyBudget();
+                monthlyBudgetInput.value = budget ?? '';
+                monthlyBudgetStatus.textContent = budget
+                    ? `今月の予算: ${formatCurrency(budget)}`
+                    : '予算が未設定です。支出の上限額を入力してください。';
             }
 
             function renderCategoryList(type, container, countElement) {
@@ -3042,6 +3237,40 @@ ${diaryLine || '記録なし'}
                         accountPhotoEl.classList.add('hidden');
                     }
                     logoutBtn.classList.add('hidden');
+                }
+            }
+
+            function handleBudgetSave() {
+                if (!monthlyBudgetInput) return;
+                const value = Number(monthlyBudgetInput.value);
+                if (!Number.isFinite(value) || value <= 0) {
+                    appSettings.monthlyBudget = null;
+                    monthlyBudgetInput.value = '';
+                    if (monthlyBudgetStatus) {
+                        monthlyBudgetStatus.textContent = '0より大きい金額を入力してください。';
+                    }
+                    return;
+                }
+
+                appSettings.monthlyBudget = Math.round(value);
+                saveSettings();
+                renderSettingsView();
+                renderMonthSummary();
+                if (currentView === 'analysis') {
+                    renderAnalysis();
+                }
+            }
+
+            function handleBudgetClear() {
+                appSettings.monthlyBudget = null;
+                if (monthlyBudgetInput) {
+                    monthlyBudgetInput.value = '';
+                }
+                saveSettings();
+                renderSettingsView();
+                renderMonthSummary();
+                if (currentView === 'analysis') {
+                    renderAnalysis();
                 }
             }
 
@@ -4003,6 +4232,20 @@ ${diaryLine || '記録なし'}
                 if (themeDarkBtn) {
                     themeDarkBtn.addEventListener('click', () => setThemePreference('dark'));
                 }
+                if (monthlyBudgetSaveBtn) {
+                    monthlyBudgetSaveBtn.addEventListener('click', handleBudgetSave);
+                }
+                if (monthlyBudgetClearBtn) {
+                    monthlyBudgetClearBtn.addEventListener('click', handleBudgetClear);
+                }
+                if (monthlyBudgetInput) {
+                    monthlyBudgetInput.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter') {
+                            event.preventDefault();
+                            handleBudgetSave();
+                        }
+                    });
+                }
 
                 if (categoryEditCancel) {
                     categoryEditCancel.addEventListener('click', closeCategoryEditModal);
@@ -4174,6 +4417,10 @@ ${diaryLine || '記録なし'}
                 
                 renderDailyTransactions(record.transactions);
                 renderDiaryFinanceList();
+                renderMonthSummary();
+                if (currentView === 'analysis') {
+                    renderAnalysis();
+                }
                 
                 if (resetForm) {
                     amountInput.value = '';
@@ -4223,6 +4470,10 @@ ${diaryLine || '記録なし'}
                 // 収支一覧を再描画
                 renderDailyTransactions(record.transactions);
                 renderDiaryFinanceList();
+                renderMonthSummary();
+                if (currentView === 'analysis') {
+                    renderAnalysis();
+                }
             }
 
             // 写真アップロード処理
