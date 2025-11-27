@@ -1301,6 +1301,7 @@
                     income: [...DEFAULT_CATEGORIES.income]
                 },
                 recurringEntries: [], // { id, type, amount, category, memo, day }
+                recurringSkipInstances: [], // ['recurringId:YYYY-MM-DD']
                 monthlyBudget: null
             };
             let categoryEditTarget = { type: null, oldName: null };
@@ -1811,12 +1812,13 @@
                 return {
                     theme: 'light',
                     categories: {
-                        expense: [...DEFAULT_CATEGORIES.expense],
-                        income: [...DEFAULT_CATEGORIES.income]
-                    },
-                    recurringEntries: [],
-                    monthlyBudget: null
-                };
+                    expense: [...DEFAULT_CATEGORIES.expense],
+                    income: [...DEFAULT_CATEGORIES.income]
+                },
+                recurringEntries: [],
+                recurringSkipInstances: [],
+                monthlyBudget: null
+            };
             }
 
             function mergeSettings(base, source) {
@@ -1824,6 +1826,7 @@
                     ...base,
                     categories: { ...base.categories },
                     recurringEntries: Array.isArray(base.recurringEntries) ? [...base.recurringEntries] : [],
+                    recurringSkipInstances: Array.isArray(base.recurringSkipInstances) ? [...base.recurringSkipInstances] : [],
                     monthlyBudget: base.monthlyBudget ?? null
                 };
                 if (!source) return merged;
@@ -1835,6 +1838,9 @@
                     ? [...source.categories.income]
                     : merged.categories.income;
                 merged.recurringEntries = Array.isArray(source.recurringEntries) ? [...source.recurringEntries] : merged.recurringEntries;
+                merged.recurringSkipInstances = Array.isArray(source.recurringSkipInstances)
+                    ? [...source.recurringSkipInstances]
+                    : merged.recurringSkipInstances;
                 merged.monthlyBudget = Number.isFinite(source.monthlyBudget) && source.monthlyBudget > 0
                     ? Number(source.monthlyBudget)
                     : merged.monthlyBudget;
@@ -3461,6 +3467,24 @@ ${diaryLine || '記録なし'}
                 updateRecurringCategoryOptions();
             }
 
+            function getRecurringSkipKey(recurringId, dateStr) {
+                return `${recurringId}:${dateStr}`;
+            }
+
+            function getRecurringSkipSet() {
+                const raw = Array.isArray(appSettings.recurringSkipInstances) ? appSettings.recurringSkipInstances : [];
+                return new Set(raw);
+            }
+
+            function markRecurringInstanceSkipped(recurringId, dateStr) {
+                if (!recurringId || !dateStr) return;
+                const key = getRecurringSkipKey(recurringId, dateStr);
+                const list = Array.isArray(appSettings.recurringSkipInstances) ? appSettings.recurringSkipInstances : [];
+                if (list.includes(key)) return;
+                appSettings.recurringSkipInstances = [...list, key];
+                saveSettings();
+            }
+
             function handleRecurringSave() {
                 if (!recurringTypeSelect || !recurringDayInput || !recurringAmountInput || !recurringCategoryInput) return;
                 const type = recurringTypeSelect.value === 'income' ? 'income' : 'expense';
@@ -3633,6 +3657,7 @@ ${diaryLine || '記録なし'}
                 const entries = Array.isArray(appSettings.recurringEntries) ? appSettings.recurringEntries : [];
                 if (entries.length === 0) return;
 
+                const skipSet = getRecurringSkipSet();
                 const year = baseDate.getFullYear();
                 const month = baseDate.getMonth();
                 const lastDay = new Date(year, month + 1, 0).getDate();
@@ -3646,9 +3671,10 @@ ${diaryLine || '記録なし'}
                     const dateStr = formatDate(targetDate);
                     const record = getDayRecord(dateStr);
                     const existingIndex = record.transactions.findIndex(t => t.recurringId === entry.id);
+                    const skipKey = getRecurringSkipKey(entry.id, dateStr);
 
                     const isActive = isRecurringActiveOnDate(entry, targetDate, todayDate);
-                    if (isActive) {
+                    if (isActive && !skipSet.has(skipKey)) {
                         const payload = {
                             id: `${entry.id}-${dateStr}`,
                             type: entry.type,
@@ -3658,15 +3684,10 @@ ${diaryLine || '記録なし'}
                             recurringId: entry.id,
                             createdAt: Date.now()
                         };
-                        if (existingIndex >= 0) {
-                            record.transactions[existingIndex] = { ...record.transactions[existingIndex], ...payload };
-                        } else {
+                        if (existingIndex < 0) {
                             record.transactions.push(payload);
+                            updated = true;
                         }
-                        updated = true;
-                    } else if (existingIndex >= 0) {
-                        record.transactions.splice(existingIndex, 1);
-                        updated = true;
                     }
                 });
 
@@ -4461,7 +4482,11 @@ ${diaryLine || '記録なし'}
             // 収支削除
             async function handleDeleteTransaction(transactionId) {
                 const record = getDayRecord(selectedDateStr);
+                const target = record.transactions.find(t => t.id === transactionId);
                 record.transactions = record.transactions.filter(t => t.id !== transactionId);
+                if (target?.recurringId) {
+                    markRecurringInstanceSkipped(target.recurringId, selectedDateStr);
+                }
                 if (editingTransactionId === transactionId) {
                     editingTransactionId = null;
                     updateTransactionButtonLabel();
