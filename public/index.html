@@ -575,6 +575,20 @@
             cursor: not-allowed;
         }
 
+        /* 定額: 曜日選択 */
+        .recurring-weekday-btn {
+            border: 1px solid var(--color-border);
+            background-color: var(--color-panel);
+            color: var(--color-text);
+            transition: all 0.15s ease;
+        }
+        .recurring-weekday-btn.active {
+            background-color: var(--color-accent-soft);
+            border-color: var(--color-accent);
+            color: var(--color-accent-strong);
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.15);
+        }
+
         /* 日記モード切替 */
         #diary-mode-toggle button {
             transition: all 0.2s ease;
@@ -929,8 +943,27 @@
                                 </select>
                             </div>
                             <div class="flex gap-2">
+                                <label class="w-24 text-gray-600 font-medium">登録タイミング</label>
+                                <select id="recurring-schedule-type" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="date">毎月の日付で登録</option>
+                                    <option value="weekday">曜日で登録</option>
+                                </select>
+                            </div>
+                            <div class="flex gap-2" id="recurring-day-row">
                                 <label class="w-24 text-gray-600 font-medium">日付</label>
                                 <input type="number" id="recurring-day-input" min="1" max="31" class="flex-1 py-2 px-3 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="1〜31">
+                            </div>
+                            <div class="flex gap-2 items-start hidden" id="recurring-weekdays-row">
+                                <label class="w-24 text-gray-600 font-medium">曜日</label>
+                                <div class="flex-1 grid grid-cols-4 sm:grid-cols-7 gap-2">
+                                    <button type="button" class="recurring-weekday-btn rounded-lg px-3 py-2 text-sm font-semibold" data-recurring-weekday="0" aria-pressed="false">日</button>
+                                    <button type="button" class="recurring-weekday-btn rounded-lg px-3 py-2 text-sm font-semibold" data-recurring-weekday="1" aria-pressed="false">月</button>
+                                    <button type="button" class="recurring-weekday-btn rounded-lg px-3 py-2 text-sm font-semibold" data-recurring-weekday="2" aria-pressed="false">火</button>
+                                    <button type="button" class="recurring-weekday-btn rounded-lg px-3 py-2 text-sm font-semibold" data-recurring-weekday="3" aria-pressed="false">水</button>
+                                    <button type="button" class="recurring-weekday-btn rounded-lg px-3 py-2 text-sm font-semibold" data-recurring-weekday="4" aria-pressed="false">木</button>
+                                    <button type="button" class="recurring-weekday-btn rounded-lg px-3 py-2 text-sm font-semibold" data-recurring-weekday="5" aria-pressed="false">金</button>
+                                    <button type="button" class="recurring-weekday-btn rounded-lg px-3 py-2 text-sm font-semibold" data-recurring-weekday="6" aria-pressed="false">土</button>
+                                </div>
                             </div>
                             <div class="flex gap-2">
                                 <label class="w-24 text-gray-600 font-medium">金額</label>
@@ -1277,6 +1310,7 @@
             let geminiModelOrderCache = null;
             const isGeminiConfigured = GEMINI_API_KEY && !GEMINI_API_KEY.includes('YOUR_GEMINI_API_KEY');
             const MOODS = ['😄', '😊', '😐', '😞', '😡']; // 5段階に変更
+            const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
             const DEFAULT_CATEGORIES = {
                 expense: ['食費', '交通費', '日用品', '趣味', '交際費', '固定費', 'その他'],
                 income: ['給与', 'その他収入']
@@ -1300,7 +1334,7 @@
                     expense: [...DEFAULT_CATEGORIES.expense],
                     income: [...DEFAULT_CATEGORIES.income]
                 },
-                recurringEntries: [], // { id, type, amount, category, memo, day }
+                recurringEntries: [], // { id, type, amount, category, memo, schedule, day?, weekdays? }
                 recurringSkipInstances: [], // ['recurringId:YYYY-MM-DD']
                 monthlyBudget: null
             };
@@ -1411,7 +1445,11 @@
             const expenseCategoryCount = document.getElementById('expense-category-count');
             const incomeCategoryCount = document.getElementById('income-category-count');
             const recurringTypeSelect = document.getElementById('recurring-type-select');
+            const recurringScheduleType = document.getElementById('recurring-schedule-type');
             const recurringDayInput = document.getElementById('recurring-day-input');
+            const recurringDayRow = document.getElementById('recurring-day-row');
+            const recurringWeekdaysRow = document.getElementById('recurring-weekdays-row');
+            const recurringWeekdayButtons = Array.from(document.querySelectorAll('[data-recurring-weekday]'));
             const recurringAmountInput = document.getElementById('recurring-amount-input');
             const recurringCategoryInput = document.getElementById('recurring-category-input');
             const recurringMemoInput = document.getElementById('recurring-memo-input');
@@ -1815,17 +1853,84 @@
                     expense: [...DEFAULT_CATEGORIES.expense],
                     income: [...DEFAULT_CATEGORIES.income]
                 },
-                recurringEntries: [],
-                recurringSkipInstances: [],
-                monthlyBudget: null
+                    recurringEntries: [],
+                    recurringSkipInstances: [],
+                    monthlyBudget: null
             };
+            }
+
+            function getRecurringScheduleType(entry) {
+                return entry && entry.schedule === 'weekday' ? 'weekday' : 'date';
+            }
+
+            function getRecurringWeekdays(entry) {
+                if (!entry) return [];
+                const raw = Array.isArray(entry.weekdays) ? entry.weekdays : [];
+                return raw
+                    .map((w) => parseInt(w, 10))
+                    .filter((w) => Number.isInteger(w) && w >= 0 && w <= 6);
+            }
+
+            function normalizeRecurringEntry(entry) {
+                if (!entry || typeof entry !== 'object') return null;
+                const schedule = getRecurringScheduleType(entry);
+                const normalized = {
+                    ...entry,
+                    schedule,
+                    weekdays: schedule === 'weekday' ? getRecurringWeekdays(entry) : [],
+                    day: schedule === 'date' ? (Number.parseInt(entry.day, 10) || 1) : null
+                };
+                return normalized;
+            }
+
+            function normalizeRecurringEntries(entries) {
+                if (!Array.isArray(entries)) return [];
+                return entries
+                    .map(normalizeRecurringEntry)
+                    .filter(Boolean);
+            }
+
+            function getRecurringSortValue(entry) {
+                const schedule = getRecurringScheduleType(entry);
+                if (schedule === 'weekday') {
+                    const weekdays = getRecurringWeekdays(entry);
+                    const first = weekdays.length ? Math.min(...weekdays) : 7;
+                    return { priority: 1, value: first };
+                }
+                const day = Number.isFinite(entry?.day) ? entry.day : 32;
+                return { priority: 0, value: day };
+            }
+
+            function compareRecurringEntries(a, b) {
+                const aKey = getRecurringSortValue(a);
+                const bKey = getRecurringSortValue(b);
+                if (aKey.priority !== bKey.priority) {
+                    return aKey.priority - bKey.priority;
+                }
+                if (aKey.value !== bKey.value) {
+                    return aKey.value - bKey.value;
+                }
+                return (a?.category || '').localeCompare(b?.category || '');
+            }
+
+            function formatRecurringScheduleText(entry) {
+                const schedule = getRecurringScheduleType(entry);
+                if (schedule === 'weekday') {
+                    const weekdays = getRecurringWeekdays(entry);
+                    const weekdayLabel = weekdays.length
+                        ? weekdays.map((w) => WEEKDAY_LABELS[w]).join('・')
+                        : '曜日未設定';
+                    return `毎週${weekdayLabel}`;
+                }
+                const dayText = Number.isFinite(entry?.day) ? `${entry.day}日` : '日付未設定';
+                return dayText;
             }
 
             function mergeSettings(base, source) {
                 const merged = {
                     ...base,
                     categories: { ...base.categories },
-                    recurringEntries: Array.isArray(base.recurringEntries) ? [...base.recurringEntries] : [],
+                    recurringEntries: normalizeRecurringEntries(base.recurringEntries),
                     recurringSkipInstances: Array.isArray(base.recurringSkipInstances) ? [...base.recurringSkipInstances] : [],
                     monthlyBudget: base.monthlyBudget ?? null
                 };
@@ -1837,13 +1942,16 @@
                 merged.categories.income = Array.isArray(source.categories?.income) && source.categories.income.length > 0
                     ? [...source.categories.income]
                     : merged.categories.income;
-                merged.recurringEntries = Array.isArray(source.recurringEntries) ? [...source.recurringEntries] : merged.recurringEntries;
+                merged.recurringEntries = Array.isArray(source.recurringEntries)
+                    ? normalizeRecurringEntries(source.recurringEntries)
+                    : merged.recurringEntries;
                 merged.recurringSkipInstances = Array.isArray(source.recurringSkipInstances)
                     ? [...source.recurringSkipInstances]
                     : merged.recurringSkipInstances;
                 merged.monthlyBudget = Number.isFinite(source.monthlyBudget) && source.monthlyBudget > 0
                     ? Number(source.monthlyBudget)
                     : merged.monthlyBudget;
+                merged.recurringEntries = normalizeRecurringEntries(merged.recurringEntries);
                 return merged;
             }
 
@@ -3452,12 +3560,49 @@ ${diaryLine || '記録なし'}
                 }
             }
 
+            function updateRecurringScheduleUI(schedule = recurringScheduleType?.value || 'date') {
+                const isWeekday = schedule === 'weekday';
+                if (recurringDayRow) {
+                    recurringDayRow.classList.toggle('hidden', isWeekday);
+                }
+                if (recurringWeekdaysRow) {
+                    recurringWeekdaysRow.classList.toggle('hidden', !isWeekday);
+                }
+            }
+
+            function setSelectedRecurringWeekdays(weekdays = []) {
+                const selected = new Set(weekdays);
+                recurringWeekdayButtons.forEach((btn) => {
+                    const value = Number.parseInt(btn.dataset.recurringWeekday, 10);
+                    const isActive = selected.has(value);
+                    btn.classList.toggle('active', isActive);
+                    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                });
+            }
+
+            function getSelectedRecurringWeekdays() {
+                return recurringWeekdayButtons
+                    .filter((btn) => btn.classList.contains('active'))
+                    .map((btn) => Number.parseInt(btn.dataset.recurringWeekday, 10))
+                    .filter((w) => Number.isInteger(w) && w >= 0 && w <= 6);
+            }
+
+            function setRecurringScheduleType(schedule) {
+                const normalized = schedule === 'weekday' ? 'weekday' : 'date';
+                if (recurringScheduleType) {
+                    recurringScheduleType.value = normalized;
+                }
+                updateRecurringScheduleUI(normalized);
+            }
+
             function resetRecurringForm() {
                 editingRecurringId = null;
                 if (recurringSaveBtn) {
                     recurringSaveBtn.textContent = '追加';
                 }
                 if (recurringTypeSelect) recurringTypeSelect.value = 'expense';
+                setRecurringScheduleType('date');
+                setSelectedRecurringWeekdays([]);
                 if (recurringDayInput) recurringDayInput.value = '';
                 if (recurringAmountInput) recurringAmountInput.value = '';
                 if (recurringMemoInput) recurringMemoInput.value = '';
@@ -3486,9 +3631,11 @@ ${diaryLine || '記録なし'}
             }
 
             function handleRecurringSave() {
-                if (!recurringTypeSelect || !recurringDayInput || !recurringAmountInput || !recurringCategoryInput) return;
+                if (!recurringTypeSelect || !recurringAmountInput || !recurringCategoryInput) return;
                 const type = recurringTypeSelect.value === 'income' ? 'income' : 'expense';
-                const day = parseInt(recurringDayInput.value, 10);
+                const schedule = recurringScheduleType?.value === 'weekday' ? 'weekday' : 'date';
+                const day = Number.parseInt(recurringDayInput?.value, 10);
+                const selectedWeekdays = getSelectedRecurringWeekdays().sort((a, b) => a - b);
                 const amount = parseInt(recurringAmountInput.value, 10);
                 const category = recurringCategoryInput.value;
                 const memo = recurringMemoInput?.value?.trim() || '';
@@ -3496,8 +3643,13 @@ ${diaryLine || '記録なし'}
                 const endDateStr = recurringEndInput?.value || '';
                 const noEnd = recurringNoEndInput?.checked;
 
-                if (!Number.isFinite(day) || day < 1 || day > 31) {
-                    alert('1〜31の間で日付を入力してください。');
+                if (schedule === 'date') {
+                    if (!Number.isFinite(day) || day < 1 || day > 31) {
+                        alert('1〜31の間で日付を入力してください。');
+                        return;
+                    }
+                } else if (selectedWeekdays.length === 0) {
+                    alert('曜日を1つ以上選択してください。');
                     return;
                 }
                 if (!amount || amount <= 0) {
@@ -3535,7 +3687,9 @@ ${diaryLine || '記録なし'}
                 const entry = {
                     id: editingRecurringId || `rec-${Date.now()}`,
                     type,
-                    day,
+                    schedule,
+                    day: schedule === 'date' ? day : null,
+                    weekdays: schedule === 'weekday' ? selectedWeekdays : [],
                     amount,
                     category,
                     memo,
@@ -3550,8 +3704,8 @@ ${diaryLine || '記録なし'}
                 } else {
                     entries.push(entry);
                 }
-                entries.sort((a, b) => a.day - b.day);
-                appSettings.recurringEntries = entries;
+                entries.sort(compareRecurringEntries);
+                appSettings.recurringEntries = normalizeRecurringEntries(entries);
                 saveSettings();
                 renderRecurringList();
                 resetRecurringForm();
@@ -3577,7 +3731,15 @@ ${diaryLine || '記録なし'}
                 if (recurringSaveBtn) recurringSaveBtn.textContent = '更新';
                 if (recurringTypeSelect) recurringTypeSelect.value = entry.type;
                 updateRecurringCategoryOptions();
-                if (recurringDayInput) recurringDayInput.value = entry.day;
+                const schedule = getRecurringScheduleType(entry);
+                setRecurringScheduleType(schedule);
+                if (schedule === 'weekday') {
+                    setSelectedRecurringWeekdays(getRecurringWeekdays(entry));
+                    if (recurringDayInput) recurringDayInput.value = '';
+                } else if (recurringDayInput) {
+                    recurringDayInput.value = entry.day;
+                    setSelectedRecurringWeekdays([]);
+                }
                 if (recurringAmountInput) recurringAmountInput.value = entry.amount;
                 if (recurringCategoryInput) recurringCategoryInput.value = entry.category;
                 if (recurringMemoInput) recurringMemoInput.value = entry.memo || '';
@@ -3589,7 +3751,7 @@ ${diaryLine || '記録なし'}
             function renderRecurringList() {
                 if (!recurringListContainer) return;
                 recurringListContainer.innerHTML = '';
-                const entries = Array.isArray(appSettings.recurringEntries) ? [...appSettings.recurringEntries] : [];
+                const entries = normalizeRecurringEntries(appSettings.recurringEntries);
                 if (entries.length === 0) {
                     const empty = document.createElement('div');
                     empty.className = 'text-center text-sm text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300 p-4';
@@ -3598,7 +3760,7 @@ ${diaryLine || '記録なし'}
                     return;
                 }
 
-                entries.sort((a, b) => a.day - b.day);
+                entries.sort(compareRecurringEntries);
                 entries.forEach(entry => {
                     const row = document.createElement('div');
                     row.className = 'flex items-center justify-between gap-3 border border-gray-200 rounded-lg px-3 py-2 bg-gray-50';
@@ -3609,7 +3771,7 @@ ${diaryLine || '記録なし'}
                     const title = document.createElement('p');
                     title.className = 'text-sm font-semibold text-gray-800';
                     title.style.color = 'var(--color-text)';
-                    title.textContent = `${entry.day}日: ${entry.category}`;
+                    title.textContent = `${formatRecurringScheduleText(entry)}: ${entry.category}`;
                     const meta = document.createElement('p');
                     meta.className = 'text-xs text-gray-500';
                     meta.style.color = 'var(--color-text-muted)';
@@ -3652,6 +3814,26 @@ ${diaryLine || '記録なし'}
                 });
             }
 
+            function getRecurringTargetDatesForMonth(entry, year, month) {
+                const dates = [];
+                const lastDay = new Date(year, month + 1, 0).getDate();
+                const schedule = getRecurringScheduleType(entry);
+                if (schedule === 'weekday') {
+                    const weekdays = getRecurringWeekdays(entry);
+                    if (weekdays.length === 0) return dates;
+                    for (let day = 1; day <= lastDay; day++) {
+                        const targetDate = new Date(year, month, day);
+                        if (weekdays.includes(targetDate.getDay())) {
+                            dates.push(targetDate);
+                        }
+                    }
+                    return dates;
+                }
+                const targetDay = Math.min(Math.max(1, Number.parseInt(entry.day, 10) || 1), lastDay);
+                dates.push(new Date(year, month, targetDay));
+                return dates;
+            }
+
             function applyRecurringEntriesForMonth(baseDate = currentDate) {
                 if (!currentUser) return;
                 const entries = Array.isArray(appSettings.recurringEntries) ? appSettings.recurringEntries : [];
@@ -3660,35 +3842,35 @@ ${diaryLine || '記録なし'}
                 const skipSet = getRecurringSkipSet();
                 const year = baseDate.getFullYear();
                 const month = baseDate.getMonth();
-                const lastDay = new Date(year, month + 1, 0).getDate();
                 const today = new Date();
                 const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
                 let updated = false;
 
                 entries.forEach(entry => {
-                    const targetDay = Math.min(entry.day, lastDay);
-                    const targetDate = new Date(year, month, targetDay);
-                    const dateStr = formatDate(targetDate);
-                    const record = getDayRecord(dateStr);
-                    const existingIndex = record.transactions.findIndex(t => t.recurringId === entry.id);
-                    const skipKey = getRecurringSkipKey(entry.id, dateStr);
+                    const targetDates = getRecurringTargetDatesForMonth(entry, year, month);
+                    targetDates.forEach((targetDate) => {
+                        const dateStr = formatDate(targetDate);
+                        const record = getDayRecord(dateStr);
+                        const existingIndex = record.transactions.findIndex(t => t.recurringId === entry.id);
+                        const skipKey = getRecurringSkipKey(entry.id, dateStr);
 
-                    const isActive = isRecurringActiveOnDate(entry, targetDate, todayDate);
-                    if (isActive && !skipSet.has(skipKey)) {
-                        const payload = {
-                            id: `${entry.id}-${dateStr}`,
-                            type: entry.type,
-                            amount: entry.amount,
-                            category: entry.category,
-                            memo: entry.memo || '',
-                            recurringId: entry.id,
-                            createdAt: Date.now()
-                        };
-                        if (existingIndex < 0) {
-                            record.transactions.push(payload);
-                            updated = true;
+                        const isActive = isRecurringActiveOnDate(entry, targetDate, todayDate);
+                        if (isActive && !skipSet.has(skipKey)) {
+                            const payload = {
+                                id: `${entry.id}-${dateStr}`,
+                                type: entry.type,
+                                amount: entry.amount,
+                                category: entry.category,
+                                memo: entry.memo || '',
+                                recurringId: entry.id,
+                                createdAt: Date.now()
+                            };
+                            if (existingIndex < 0) {
+                                record.transactions.push(payload);
+                                updated = true;
+                            }
                         }
-                    }
+                    });
                 });
 
                 if (updated) {
@@ -4291,6 +4473,20 @@ ${diaryLine || '記録なし'}
                 }
                 if (recurringTypeSelect) {
                     recurringTypeSelect.addEventListener('change', updateRecurringCategoryOptions);
+                }
+                if (recurringScheduleType) {
+                    recurringScheduleType.addEventListener('change', (event) => {
+                        updateRecurringScheduleUI(event.target.value);
+                    });
+                }
+                if (recurringWeekdayButtons.length) {
+                    recurringWeekdayButtons.forEach((btn) => {
+                        btn.addEventListener('click', () => {
+                            btn.classList.toggle('active');
+                            const isActive = btn.classList.contains('active');
+                            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                        });
+                    });
                 }
                 if (recurringNoEndInput && recurringEndInput) {
                     recurringNoEndInput.addEventListener('change', () => {
