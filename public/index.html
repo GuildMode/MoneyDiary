@@ -688,6 +688,25 @@
                 </div>
             </div>
 
+            <!-- 入力方法選択モーダル (アクションシート風) -->
+            <div id="entry-method-modal" class="hidden fixed inset-0 z-[70] flex items-end sm:items-center justify-center">
+                <div class="fixed inset-0 bg-black bg-opacity-40 transition-opacity" id="entry-method-overlay"></div>
+                <div class="relative bg-white w-full max-w-sm mx-4 mb-6 sm:mb-0 rounded-xl p-4 space-y-3 shadow-xl transform transition-transform">
+                    <h3 class="text-center font-bold text-gray-700 py-2">記録方法を選択</h3>
+                    <div class="space-y-2">
+                        <button id="method-manual-btn" class="w-full flex items-center justify-center gap-3 py-3 bg-blue-50 text-blue-700 font-bold rounded-xl active:bg-blue-100 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            手動で入力
+                        </button>
+                        <button id="method-scan-btn" class="w-full flex items-center justify-center gap-3 py-3 bg-blue-600 text-white font-bold rounded-xl active:bg-blue-700 transition-colors shadow-md">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            レシートから自動入力
+                        </button>
+                    </div>
+                    <button id="method-cancel-btn" class="w-full py-3 text-gray-500 text-sm font-medium">キャンセル</button>
+                </div>
+            </div>
+
             <!-- 1-2. 集計ビュー -->
             <div id="analysis-view" class="hidden p-4 space-y-4">
                 <h2 class="text-xl font-bold text-gray-800 px-2">集計・分析</h2>
@@ -1115,6 +1134,19 @@
                     </div>
                 </div>
 
+                <!-- レシートスキャン -->
+                <div class="flex justify-end">
+                    <input type="file" id="receipt-upload" class="hidden" accept="image/*" capture="environment">
+                    <button type="button" id="scan-receipt-btn" class="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        レシートを読取る
+                    </button>
+                    <div id="scan-loading" class="hidden flex items-center gap-2 text-sm text-gray-500">
+                        <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                        解析中...
+                    </div>
+                </div>
+
                 <!-- 金額 -->
                 <div>
                     <label for="amount" class="text-sm font-medium text-gray-700">金額</label>
@@ -1259,6 +1291,37 @@
         </div>
     </div>
 
+    <!-- スキャン結果確認モーダル -->
+    <div id="scan-result-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4 bg-black bg-opacity-60">
+        <div class="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <div>
+                    <h3 class="font-bold text-lg text-gray-800">スキャン結果</h3>
+                    <p class="text-xs text-gray-500">内容を確認して登録してください</p>
+                </div>
+                <button id="scan-result-close" class="p-2 rounded-full hover:bg-gray-200 text-gray-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="flex-grow overflow-y-auto p-4 bg-gray-50">
+                <div id="scan-result-list" class="space-y-3">
+                    <!-- JSで動的に生成 -->
+                </div>
+                <button id="scan-result-add-row" class="mt-4 w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 text-sm font-medium hover:bg-gray-100 transition-colors">
+                    + 行を追加
+                </button>
+            </div>
+
+            <div class="p-4 border-t border-gray-200 bg-white flex justify-end gap-3">
+                <button id="scan-result-cancel" class="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50">キャンセル</button>
+                <button id="scan-result-save" class="px-5 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 shadow-md">
+                    選択した項目を追加
+                </button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -1267,12 +1330,12 @@
 
             // 定数
             const FIREBASE_CONFIG = {
-                apiKey: "YOUR_FIREBASE_API_KEY",
-                authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
-                projectId: "YOUR_FIREBASE_PROJECT_ID",
-                storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
-                messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
-                appId: "YOUR_FIREBASE_APP_ID"
+                apiKey: "AIzaSyAL4m9Ixjq9hETKad_esPvWqUkdIWxt1nY",
+                authDomain: "moneydiary-web.firebaseapp.com",
+                projectId: "moneydiary-web",
+                storageBucket: "moneydiary-web.firebasestorage.app",
+                messagingSenderId: "79130877798",
+                appId: "1:79130877798:web:68504c48d434bc815bf2a7"
             };
             const FIREBASE_PLACEHOLDERS = [
                 'YOUR_FIREBASE_API_KEY',
@@ -1382,6 +1445,17 @@
             const amountInput = document.getElementById('amount');
             const categorySelect = document.getElementById('category');
             const memoInput = document.getElementById('memo');
+            const receiptUpload = document.getElementById('receipt-upload');
+            const scanReceiptBtn = document.getElementById('scan-receipt-btn');
+            const scanLoading = document.getElementById('scan-loading');
+            // 入力方法選択モーダル
+            const entryMethodModal = document.getElementById('entry-method-modal');
+            const entryMethodOverlay = document.getElementById('entry-method-overlay');
+            const methodManualBtn = document.getElementById('method-manual-btn');
+            const methodScanBtn = document.getElementById('method-scan-btn');
+            const methodCancelBtn = document.getElementById('method-cancel-btn');
+
+            let isScanningFromCalendar = false;
             const addTransactionBtn = document.getElementById('add-transaction-btn'); // 追加
             const dailyTransactionsList = document.getElementById('daily-transactions');
             const moodSelector = document.getElementById('mood-selector');
@@ -1436,6 +1510,15 @@
             const categoryEditError = document.getElementById('category-edit-error');
             const categoryEditCancel = document.getElementById('category-edit-cancel');
             const categoryEditSave = document.getElementById('category-edit-save');
+            
+            // スキャン結果モーダル
+            const scanResultModal = document.getElementById('scan-result-modal');
+            const scanResultList = document.getElementById('scan-result-list');
+            const scanResultClose = document.getElementById('scan-result-close');
+            const scanResultCancel = document.getElementById('scan-result-cancel');
+            const scanResultSave = document.getElementById('scan-result-save');
+            const scanResultAddRow = document.getElementById('scan-result-add-row');
+
             const expenseCategoryList = document.getElementById('expense-category-list');
             const incomeCategoryList = document.getElementById('income-category-list');
             const expenseCategoryInput = document.getElementById('expense-category-input');
@@ -2557,6 +2640,82 @@ ${diaryLine || '記録なし'}
                             return text;
                         }
                         lastError = 'アドバイスを取得できませんでした。';
+                    } catch (error) {
+                        lastError = error?.message || 'Gemini APIとの通信に失敗しました。';
+                    }
+                }
+
+                throw new Error(lastError);
+            }
+
+            async function analyzeReceiptWithGemini(imageBase64, mimeType) {
+                const modelPaths = await getGeminiModelInvocationOrder();
+                let lastError = 'レシートを解析できませんでした。';
+
+                // アプリ内のカテゴリ一覧を取得してプロンプトに埋め込む
+                const categoryListStr = appSettings.categories.expense.join(', ');
+
+                const prompt = `
+                Analyze this image (receipt or purchase history). Extract ALL individual transaction items.
+                For each item, extract:
+                1. "amount": The amount (number only).
+                2. "date": The date in "YYYY-MM-DD" format. If missing, use null.
+                3. "description": Item name or store name (short summary).
+                4. "category": Choose the best fit from this list: [${categoryListStr}]. If unsure, use "その他" (or the last item in the list).
+                
+                Return a JSON ARRAY of objects. Do not wrap in markdown.
+                Example: [{"amount": 1200, "date": "2023-10-25", "description": "Lunch", "category": "食費"}]
+                `;
+
+                for (const path of modelPaths) {
+                    try {
+                        const response = await fetch(`${GEMINI_API_BASE}/${path}?key=${GEMINI_API_KEY}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{
+                                    parts: [
+                                        { text: prompt },
+                                        {
+                                            inline_data: {
+                                                mime_type: mimeType,
+                                                data: imageBase64
+                                            }
+                                        }
+                                    ]
+                                }]
+                            })
+                        });
+
+                        const data = await response.json().catch(() => ({}));
+                        if (!response.ok) {
+                            const message = data?.error?.message || `Gemini API error (${response.status})`;
+                            const shouldTryNext =
+                                response.status === 404 || /not found/i.test(message) || /not supported/i.test(message);
+                            if (shouldTryNext) {
+                                lastError = message;
+                                continue;
+                            }
+                            throw new Error(message);
+                        }
+
+                        const textPart = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (!textPart) {
+                            lastError = 'Gemini APIからの応答がありませんでした。';
+                            continue;
+                        }
+
+                        // JSONパース
+                        const jsonString = textPart.replace(/```json/g, '').replace(/```/g, '').trim();
+                        try {
+                            const result = JSON.parse(jsonString);
+                            // 配列か単一オブジェクトかを正規化して配列にする
+                            return Array.isArray(result) ? result : [result];
+                        } catch (e) {
+                            lastError = 'Geminiの応答を解析できませんでした。';
+                            continue;
+                        }
+
                     } catch (error) {
                         lastError = error?.message || 'Gemini APIとの通信に失敗しました。';
                     }
@@ -4303,11 +4462,30 @@ ${diaryLine || '記録なし'}
                     renderAnalysis();
                 });
 
-                // モーダル開閉
+                // モーダル開閉 (新規追加ボタン -> 選択モーダル)
                 addNewBtn.addEventListener('click', () => {
-                    selectedDateStr = formatDate(new Date()); // 新規追加は今日
-                    showInputModal();
+                    entryMethodModal.classList.remove('hidden');
                 });
+                
+                // 選択モーダルのアクション
+                if (methodManualBtn) {
+                    methodManualBtn.addEventListener('click', () => {
+                        entryMethodModal.classList.add('hidden');
+                        selectedDateStr = formatDate(new Date()); // 新規追加は今日
+                        showInputModal();
+                    });
+                }
+                if (methodScanBtn) {
+                    methodScanBtn.addEventListener('click', () => {
+                        entryMethodModal.classList.add('hidden');
+                        isScanningFromCalendar = true; // カレンダー画面からのスキャン扱いにする
+                        if (receiptUpload) receiptUpload.click();
+                    });
+                }
+                const closeEntryMethod = () => entryMethodModal.classList.add('hidden');
+                if (methodCancelBtn) methodCancelBtn.addEventListener('click', closeEntryMethod);
+                if (entryMethodOverlay) entryMethodOverlay.addEventListener('click', closeEntryMethod);
+
                 closeModalBtn.addEventListener('click', hideInputModal);
 
                 // モーダルタブ
@@ -4341,6 +4519,18 @@ ${diaryLine || '記録なし'}
                         }
                     });
                 }
+
+                // レシートスキャン
+                if (scanReceiptBtn && receiptUpload) {
+                    scanReceiptBtn.addEventListener('click', () => {
+                        isScanningFromCalendar = false;
+                        receiptUpload.click();
+                    });
+                }
+                if (receiptUpload) {
+                    receiptUpload.addEventListener('change', handleReceiptScan);
+                }
+
                 addTransactionBtn.addEventListener('click', handleAddTransaction); // 追加
                 
                 // 日記フォーム (写真)
@@ -4695,6 +4885,219 @@ ${diaryLine || '記録なし'}
                 if (currentView === 'analysis') {
                     renderAnalysis();
                 }
+            }
+
+            // レシートスキャン処理
+            async function handleReceiptScan(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                // UI Loading
+                if (isScanningFromCalendar) {
+                    showLoadingScreen('レシート解析中...');
+                } else {
+                    scanReceiptBtn.classList.add('hidden');
+                    scanLoading.classList.remove('hidden');
+                }
+
+                try {
+                    // 画像をリサイズしてBase64化
+                    const base64Data = await resizeImage(file, 1024);
+                    
+                    const matches = base64Data.match(/^data:(.+);base64,(.+)$/);
+                    if (!matches) throw new Error('Invalid image data');
+
+                    const mimeType = matches[1];
+                    const image = matches[2];
+
+                    // クライアントサイドから直接Gemini APIを呼び出す
+                    // 配列が返ってくることを期待
+                    const items = await analyzeReceiptWithGemini(image, mimeType);
+
+                    if (!Array.isArray(items) || items.length === 0) {
+                        throw new Error('有効なデータが見つかりませんでした。');
+                    }
+
+                    // 結果確認モーダルを表示
+                    showScanResultModal(items);
+
+                } catch (error) {
+                    console.error('Scan Error:', error);
+                    alert(`レシートの読み取りに失敗しました: ${error.message}`);
+                } finally {
+                    // UI Reset
+                    if (isScanningFromCalendar) {
+                        hideLoadingScreen();
+                        isScanningFromCalendar = false;
+                    } else {
+                        scanLoading.classList.add('hidden');
+                        scanReceiptBtn.classList.remove('hidden');
+                    }
+                    receiptUpload.value = ''; // リセット
+                }
+            }
+            
+            function showScanResultModal(items) {
+                scanResultList.innerHTML = '';
+                // 空の配列対策
+                if (!items || items.length === 0) {
+                    addScanResultRow({});
+                } else {
+                    items.forEach(item => {
+                        addScanResultRow(item);
+                    });
+                }
+                scanResultModal.classList.remove('hidden');
+            }
+
+            function closeScanResultModal() {
+                scanResultModal.classList.add('hidden');
+            }
+
+            function addScanResultRow(item = {}) {
+                const row = document.createElement('div');
+                row.className = 'flex gap-2 items-start bg-white p-3 rounded-lg border border-gray-200 shadow-sm transition-all hover:shadow-md';
+                
+                // 日付 (YYYY-MM-DD)
+                // アイテムに日付がない場合は、現在選択中の日付(selectedDateStr)を初期値とする
+                // selectedDateStrも未定義なら今日の日付
+                const dateVal = item.date || selectedDateStr || formatDate(new Date());
+                
+                // カテゴリ選択肢の生成と初期選択
+                const predictedCategory = item.category || 'その他';
+                const categoryOptions = appSettings.categories.expense.map(c => {
+                    const isSelected = c === predictedCategory ? 'selected' : '';
+                    return `<option value="${c}" ${isSelected}>${c}</option>`;
+                }).join('');
+                
+                // "その他"がリストにない場合のフォールバック対応
+                const otherSelected = !appSettings.categories.expense.includes(predictedCategory) ? 'selected' : '';
+
+                row.innerHTML = `
+                    <div class="pt-2">
+                        <input type="checkbox" class="scan-check w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                    </div>
+                    <div class="flex-1 space-y-2 min-w-0">
+                        <div class="flex gap-2">
+                            <input type="date" class="scan-date w-full sm:w-32 py-1.5 px-2 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value="${dateVal}">
+                            <input type="text" class="scan-desc flex-1 py-1.5 px-2 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" placeholder="内容" value="${escapeHtml(item.description || '')}">
+                        </div>
+                        <div class="flex gap-2 items-center">
+                            <span class="text-gray-500 text-xs">¥</span>
+                            <input type="number" class="scan-amount w-24 sm:flex-1 py-1.5 px-2 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 font-bold" placeholder="金額" value="${item.amount || ''}">
+                            <select class="scan-cat flex-1 sm:w-24 py-1.5 px-2 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-gray-600">
+                                ${categoryOptions}
+                                <option value="その他" ${otherSelected}>その他</option>
+                            </select>
+                            <button type="button" class="scan-remove text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // 削除ボタン
+                row.querySelector('.scan-remove').addEventListener('click', () => {
+                    row.remove();
+                    if (scanResultList.children.length === 0) {
+                        addScanResultRow(); // 最後の1行が消えたら空行を追加
+                    }
+                });
+
+                scanResultList.appendChild(row);
+            }
+
+            async function saveScanResults() {
+                const rows = Array.from(scanResultList.children);
+                let savedCount = 0;
+
+                for (const row of rows) {
+                    const checkbox = row.querySelector('.scan-check');
+                    if (!checkbox || !checkbox.checked) continue;
+
+                    const dateInput = row.querySelector('.scan-date');
+                    const descInput = row.querySelector('.scan-desc');
+                    const amountInput = row.querySelector('.scan-amount');
+                    const catInput = row.querySelector('.scan-cat');
+
+                    const dateStr = dateInput.value;
+                    const amount = parseInt(amountInput.value, 10);
+                    const desc = descInput.value.trim();
+                    const category = catInput.value;
+
+                    if (!dateStr || isNaN(amount) || amount <= 0) continue;
+
+                    // レコード保存
+                    const record = getDayRecord(dateStr);
+                    record.transactions.push({
+                        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                        type: 'expense', // レシートは基本支出
+                        amount: amount,
+                        category: category,
+                        memo: desc
+                    });
+                    savedCount++;
+                }
+
+                if (savedCount > 0) {
+                    await saveRecords();
+                    renderCalendar(); // カレンダー更新
+                    renderAnalysis(); // 集計更新
+                    // 現在のビューに応じて更新
+                    if (currentView === 'diary') {
+                        renderDiaryList();
+                    } else if (currentView === 'calendar' && selectedDateStr) {
+                         // もし現在選択中の日のデータが増えたならモーダル開け直す手もあるが、
+                         // 今回はモーダル閉じてカレンダービューに戻るで良い
+                    }
+                    
+                    closeScanResultModal();
+                    alert(`${savedCount}件の明細を保存しました。`);
+                } else {
+                    alert('保存するデータがありません。金額と日付を確認してください。');
+                }
+            }
+
+            // イベントリスナー (スキャン結果モーダル)
+            if (scanResultClose) scanResultClose.addEventListener('click', closeScanResultModal);
+            if (scanResultCancel) scanResultCancel.addEventListener('click', closeScanResultModal);
+            if (scanResultAddRow) scanResultAddRow.addEventListener('click', () => addScanResultRow());
+            if (scanResultSave) scanResultSave.addEventListener('click', saveScanResults);
+
+            function resizeImage(file, maxDimension) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+
+                            if (width > height) {
+                                if (width > maxDimension) {
+                                    height *= maxDimension / width;
+                                    width = maxDimension;
+                                }
+                            } else {
+                                if (height > maxDimension) {
+                                    width *= maxDimension / height;
+                                    height = maxDimension;
+                                }
+                            }
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            // JPEG形式、品質0.8で圧縮
+                            resolve(canvas.toDataURL('image/jpeg', 0.8));
+                        };
+                        img.onerror = reject;
+                        img.src = e.target.result;
+                    };
+                    reader.onerror = reject;
+                });
             }
 
             // 写真アップロード処理
