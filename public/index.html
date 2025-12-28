@@ -2672,21 +2672,26 @@ ${diaryLine || '記録なし'}
 
             async function analyzeReceiptWithGemini(imageBase64, mimeType) {
                 const modelPaths = await getGeminiModelInvocationOrder();
-                let lastError = 'レシートを解析できませんでした。';
+                let lastError = '解析できませんでした。';
 
-                // アプリ内のカテゴリ一覧を取得してプロンプトに埋め込む
-                const categoryListStr = appSettings.categories.expense.join(', ');
+                // カテゴリ一覧を取得
+                const expenseCats = appSettings.categories.expense.join(', ');
+                const incomeCats = appSettings.categories.income.join(', ');
 
                 const prompt = `
-                Analyze this image (receipt or purchase history). Extract ALL individual transaction items.
+                Analyze this image (receipt, purchase history, or paycheck). Extract ALL individual transaction items.
                 For each item, extract:
                 1. "amount": The amount (number only).
                 2. "date": The date in "YYYY-MM-DD" format. If missing, use null.
                 3. "description": Item name or store name (short summary).
-                4. "category": Choose the best fit from this list: [${categoryListStr}]. If unsure, use "その他" (or the last item in the list).
+                4. "type": Identify if it's an "expense" or "income".
+                5. "category": 
+                   - If type is "expense", choose from: [${expenseCats}].
+                   - If type is "income", choose from: [${incomeCats}].
+                   - If unsure, use "その他".
                 
                 Return a JSON ARRAY of objects. Do not wrap in markdown.
-                Example: [{"amount": 1200, "date": "2023-10-25", "description": "Lunch", "category": "食費"}]
+                Example: [{"amount": 1200, "date": "2023-10-25", "description": "Lunch", "type": "expense", "category": "食費"}]
                 `;
 
                 for (const path of modelPaths) {
@@ -2727,22 +2732,18 @@ ${diaryLine || '記録なし'}
                             continue;
                         }
 
-                        // JSONパース
                         const jsonString = textPart.replace(/```json/g, '').replace(/```/g, '').trim();
                         try {
                             const result = JSON.parse(jsonString);
-                            // 配列か単一オブジェクトかを正規化して配列にする
                             return Array.isArray(result) ? result : [result];
                         } catch (e) {
                             lastError = 'Geminiの応答を解析できませんでした。';
                             continue;
                         }
-
                     } catch (error) {
                         lastError = error?.message || 'Gemini APIとの通信に失敗しました。';
                     }
                 }
-
                 throw new Error(lastError);
             }
 
@@ -4978,12 +4979,13 @@ ${diaryLine || '記録なし'}
 
             function addScanResultRow(item = {}) {
                 const row = document.createElement('div');
-                row.className = 'flex gap-2 items-start bg-white p-3 rounded-lg border border-gray-200 shadow-sm transition-all hover:shadow-md scan-item-row';
+                // スマホでは縦に並ぶカード形式、PCでは横に広がるレイアウト
+                row.className = 'bg-white p-3 rounded-xl border border-gray-200 shadow-sm space-y-3 scan-item-card relative';
                 
-                // 日付 (YYYY-MM-DD)
                 const dateVal = item.date || selectedDateStr || formatDate(new Date());
+                const initialType = item.type === 'income' ? 'income' : 'expense';
 
-                // 重複チェック
+                // 重複チェック (種別も考慮)
                 let isDuplicate = false;
                 let duplicateInfo = null;
                 const record = records[dateVal];
@@ -4991,7 +4993,7 @@ ${diaryLine || '記録なし'}
                     const itemAmount = parseInt(item.amount, 10);
                     if (!isNaN(itemAmount)) {
                         const found = record.transactions.find(t => 
-                            t.type === 'expense' && 
+                            t.type === initialType && 
                             t.amount === itemAmount
                         );
                         if (found) {
@@ -5001,58 +5003,106 @@ ${diaryLine || '記録なし'}
                     }
                 }
                 
-                const predictedCategory = item.category || 'その他';
-                const categoryOptions = appSettings.categories.expense.map(c => {
-                    const isSelected = c === predictedCategory ? 'selected' : '';
-                    return `<option value="${c}" ${isSelected}>${c}</option>`;
-                }).join('');
-                
-                const otherSelected = !appSettings.categories.expense.includes(predictedCategory) ? 'selected' : '';
-
-                // 重複アラートHTML (CSSクラス .duplicate-alert を使用)
-                const duplicateAlert = isDuplicate 
-                    ? `<div class="text-[10px] sm:text-xs duplicate-alert border p-2 rounded mt-2 flex items-start gap-2">
-                         <span class="text-sm leading-none">⚠️</span>
-                         <span>
-                           <strong>重複の可能性:</strong> 既存の記録と一致しています。<br>
-                           <span class="opacity-80">登録済: ¥${duplicateInfo.amount.toLocaleString()} (${duplicateInfo.category} / ${duplicateInfo.memo || 'メモなし'})</span>
-                         </span>
-                       </div>` 
-                    : '';
-
                 const checkState = isDuplicate ? '' : 'checked';
 
                 row.innerHTML = `
-                    <div class="pt-1.5">
-                        <input type="checkbox" class="scan-check w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${checkState}>
-                    </div>
-                    <div class="flex-1 space-y-2 min-w-0">
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <input type="date" class="scan-date w-full sm:w-32 py-1.5 px-2 text-sm border border-gray-200 rounded focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-800" value="${dateVal}">
-                            <input type="text" class="scan-desc w-full sm:flex-1 py-1.5 px-2 text-sm border border-gray-200 rounded focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-800" placeholder="内容" value="${escapeHtml(item.description || '')}">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" class="scan-check w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${checkState}>
+                            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">明細項目</span>
                         </div>
-                        <div class="flex flex-wrap sm:flex-nowrap gap-2 items-center">
-                            <div class="flex items-center gap-1 flex-1 min-w-[100px]">
-                                <span class="text-gray-400 text-xs">¥</span>
-                                <input type="number" class="scan-amount w-full py-1.5 px-2 text-sm border border-gray-200 rounded focus:ring-blue-500 focus:border-blue-500 font-bold bg-gray-50 dark:bg-gray-800" placeholder="金額" value="${item.amount || ''}">
+                        <button type="button" class="scan-remove text-gray-400 hover:text-red-500 p-1.5 rounded-full hover:bg-red-50 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- 日付と種別 -->
+                        <div class="space-y-2">
+                            <div>
+                                <label class="text-[10px] font-bold text-gray-400 block mb-1">日付</label>
+                                <input type="date" class="scan-date w-full py-2 px-3 text-sm border border-gray-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-800" value="${dateVal}">
                             </div>
-                            <select class="scan-cat w-full sm:w-28 py-1.5 px-2 text-sm border border-gray-200 rounded focus:ring-blue-500 focus:border-blue-500 text-gray-600 bg-gray-50 dark:bg-gray-800">
-                                ${categoryOptions}
-                                <option value="その他" ${otherSelected}>その他</option>
-                            </select>
-                            <button type="button" class="scan-remove text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors ml-auto">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
+                            <div>
+                                <label class="text-[10px] font-bold text-gray-400 block mb-1">収支種別</label>
+                                <div class="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg gap-1">
+                                    <button type="button" class="scan-type-btn flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${initialType === 'expense' ? 'bg-white shadow text-red-600' : 'text-gray-500'}" data-type="expense">支出</button>
+                                    <button type="button" class="scan-type-btn flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${initialType === 'income' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}" data-type="income">収入</button>
+                                    <input type="hidden" class="scan-type-input" value="${initialType}">
+                                </div>
+                            </div>
                         </div>
-                        ${duplicateAlert}
+
+                        <!-- 内容と金額・カテゴリ -->
+                        <div class="space-y-2">
+                            <div>
+                                <label class="text-[10px] font-bold text-gray-400 block mb-1">内容 (メモ)</label>
+                                <input type="text" class="scan-desc w-full py-2 px-3 text-sm border border-gray-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-800" placeholder="内容" value="${escapeHtml(item.description || '')}">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold text-gray-400 block mb-1">金額</label>
+                                    <div class="relative">
+                                        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">¥</span>
+                                        <input type="number" class="scan-amount w-full pl-5 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 font-bold bg-gray-50 dark:bg-gray-800" placeholder="0" value="${item.amount || ''}">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-gray-400 block mb-1">カテゴリ</label>
+                                    <select class="scan-cat w-full py-2 px-2 text-sm border border-gray-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-600 bg-gray-50 dark:bg-gray-800">
+                                        <!-- 動的に生成 -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    ${isDuplicate 
+                        ? `<div class="duplicate-alert border p-2 rounded-lg flex items-start gap-2">
+                             <span class="text-sm">⚠️</span>
+                             <span class="text-[10px] leading-tight">
+                               <strong>重複の可能性:</strong> 既存の記録と一致しています。<br>
+                               <span class="opacity-80">${duplicateInfo.type === 'income' ? '収入' : '支出'}: ¥${duplicateInfo.amount.toLocaleString()} (${duplicateInfo.category})</span>
+                             </span>
+                           </div>` 
+                        : ''}
                 `;
+
+                // カテゴリ選択肢の更新関数
+                const updateCatOptions = (type) => {
+                    const catSelect = row.querySelector('.scan-cat');
+                    const cats = type === 'income' ? appSettings.categories.income : appSettings.categories.expense;
+                    const predicted = item.category || (cats.includes(item.category) ? item.category : 'その他');
+                    
+                    catSelect.innerHTML = cats.map(c => `<option value="${c}" ${c === predicted ? 'selected' : ''}>${c}</option>`).join('') + 
+                                         `<option value="その他" ${!cats.includes(predicted) ? 'selected' : ''}>その他</option>`;
+                };
+
+                // 初期カテゴリ設定
+                updateCatOptions(initialType);
+
+                // 種別切り替えイベント
+                row.querySelectorAll('.scan-type-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const type = btn.dataset.type;
+                        row.querySelector('.scan-type-input').value = type;
+                        
+                        // UIボタンの状態更新
+                        row.querySelectorAll('.scan-type-btn').forEach(b => {
+                            b.classList.remove('bg-white', 'shadow', 'text-red-600', 'text-blue-600');
+                            b.classList.add('text-gray-500');
+                        });
+                        btn.classList.remove('text-gray-500');
+                        btn.classList.add('bg-white', 'shadow', type === 'expense' ? 'text-red-600' : 'text-blue-600');
+                        
+                        // カテゴリ選択肢を同期
+                        updateCatOptions(type);
+                    });
+                });
                 
                 row.querySelector('.scan-remove').addEventListener('click', () => {
                     row.remove();
-                    if (scanResultList.children.length === 0) {
-                        addScanResultRow();
-                    }
+                    if (scanResultList.children.length === 0) addScanResultRow();
                 });
 
                 scanResultList.appendChild(row);
@@ -5066,46 +5116,36 @@ ${diaryLine || '記録なし'}
                     const checkbox = row.querySelector('.scan-check');
                     if (!checkbox || !checkbox.checked) continue;
 
-                    const dateInput = row.querySelector('.scan-date');
-                    const descInput = row.querySelector('.scan-desc');
-                    const amountInput = row.querySelector('.scan-amount');
-                    const catInput = row.querySelector('.scan-cat');
-
-                    const dateStr = dateInput.value;
-                    const amount = parseInt(amountInput.value, 10);
-                    const desc = descInput.value.trim();
-                    const category = catInput.value;
+                    const dateStr = row.querySelector('.scan-date').value;
+                    const amount = parseInt(row.querySelector('.scan-amount').value, 10);
+                    const desc = row.querySelector('.scan-desc').value.trim();
+                    const typeInput = row.querySelector('.scan-type-input');
+                    const type = typeInput ? typeInput.value : 'expense';
+                    const category = row.querySelector('.scan-cat').value;
 
                     if (!dateStr || isNaN(amount) || amount <= 0) continue;
 
-                    // レコード保存
                     const record = getDayRecord(dateStr);
                     record.transactions.push({
                         id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                        type: 'expense', // レシートは基本支出
+                        type: type,
                         amount: amount,
                         category: category,
-                        memo: desc
+                        memo: desc,
+                        createdAt: Date.now()
                     });
                     savedCount++;
                 }
 
                 if (savedCount > 0) {
                     await saveRecords();
-                    renderCalendar(); // カレンダー更新
-                    renderAnalysis(); // 集計更新
-                    // 現在のビューに応じて更新
-                    if (currentView === 'diary') {
-                        renderDiaryList();
-                    } else if (currentView === 'calendar' && selectedDateStr) {
-                         // もし現在選択中の日のデータが増えたならモーダル開け直す手もあるが、
-                         // 今回はモーダル閉じてカレンダービューに戻るで良い
-                    }
-                    
+                    renderCalendar();
+                    renderAnalysis();
+                    if (currentView === 'diary') renderDiaryList();
                     closeScanResultModal();
                     alert(`${savedCount}件の明細を保存しました。`);
                 } else {
-                    alert('保存するデータがありません。金額と日付を確認してください。');
+                    alert('保存するデータがありません。');
                 }
             }
 
