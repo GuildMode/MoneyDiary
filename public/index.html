@@ -700,7 +700,7 @@
                         </button>
                         <button id="method-scan-btn" class="w-full flex items-center justify-center gap-3 py-3 bg-blue-600 text-white font-bold rounded-xl active:bg-blue-700 transition-colors shadow-md">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                            レシートから自動入力
+                            画像から自動入力
                         </button>
                     </div>
                     <button id="method-cancel-btn" class="w-full py-3 text-gray-500 text-sm font-medium">キャンセル</button>
@@ -1136,10 +1136,10 @@
 
                 <!-- レシートスキャン -->
                 <div class="flex justify-end">
-                    <input type="file" id="receipt-upload" class="hidden" accept="image/*" capture="environment">
+                    <input type="file" id="receipt-upload" class="hidden" accept="image/*">
                     <button type="button" id="scan-receipt-btn" class="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        レシートを読取る
+                        画像を読取る
                     </button>
                     <div id="scan-loading" class="hidden flex items-center gap-2 text-sm text-gray-500">
                         <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
@@ -1358,7 +1358,7 @@
             });
             const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com';
             const GEMINI_API_VERSION = 'v1beta';
-            const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY';
+            const GEMINI_API_KEY = 'AIzaSyAKCCB53WYGXb2pAHIY0j6WrKljyETJEhY';
             const GEMINI_PREFERRED_MODELS = [
                 'models/gemini-1.5-flash-latest',
                 'models/gemini-1.5-flash-002',
@@ -4894,7 +4894,7 @@ ${diaryLine || '記録なし'}
 
                 // UI Loading
                 if (isScanningFromCalendar) {
-                    showLoadingScreen('レシート解析中...');
+                    showLoadingScreen('画像解析中...');
                 } else {
                     scanReceiptBtn.classList.add('hidden');
                     scanLoading.classList.remove('hidden');
@@ -4923,7 +4923,7 @@ ${diaryLine || '記録なし'}
 
                 } catch (error) {
                     console.error('Scan Error:', error);
-                    alert(`レシートの読み取りに失敗しました: ${error.message}`);
+                    alert(`画像の読み取りに失敗しました: ${error.message}`);
                 } finally {
                     // UI Reset
                     if (isScanningFromCalendar) {
@@ -4962,6 +4962,25 @@ ${diaryLine || '記録なし'}
                 // アイテムに日付がない場合は、現在選択中の日付(selectedDateStr)を初期値とする
                 // selectedDateStrも未定義なら今日の日付
                 const dateVal = item.date || selectedDateStr || formatDate(new Date());
+
+                // 重複チェック
+                let isDuplicate = false;
+                let duplicateInfo = null;
+                const record = records[dateVal];
+                if (record && record.transactions) {
+                    const itemAmount = parseInt(item.amount, 10);
+                    if (!isNaN(itemAmount)) {
+                        // 金額が一致する支出があるか確認
+                        const found = record.transactions.find(t => 
+                            t.type === 'expense' && 
+                            t.amount === itemAmount
+                        );
+                        if (found) {
+                            isDuplicate = true;
+                            duplicateInfo = found;
+                        }
+                    }
+                }
                 
                 // カテゴリ選択肢の生成と初期選択
                 const predictedCategory = item.category || 'その他';
@@ -4973,9 +4992,23 @@ ${diaryLine || '記録なし'}
                 // "その他"がリストにない場合のフォールバック対応
                 const otherSelected = !appSettings.categories.expense.includes(predictedCategory) ? 'selected' : '';
 
+                // 重複アラートHTML
+                const duplicateAlert = isDuplicate 
+                    ? `<div class="text-xs text-orange-700 bg-orange-50 border border-orange-200 p-2 rounded mt-2 flex items-start gap-2">
+                         <span class="text-lg leading-none">⚠️</span>
+                         <span>
+                           <strong>重複の可能性:</strong> 既存の記録と金額が一致しています。<br>
+                           <span class="opacity-75">登録済: ¥${duplicateInfo.amount.toLocaleString()} (${duplicateInfo.category} / ${duplicateInfo.memo || 'メモなし'})</span>
+                         </span>
+                       </div>` 
+                    : '';
+
+                // 重複時はチェックを外す
+                const checkState = isDuplicate ? '' : 'checked';
+
                 row.innerHTML = `
                     <div class="pt-2">
-                        <input type="checkbox" class="scan-check w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                        <input type="checkbox" class="scan-check w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${checkState}>
                     </div>
                     <div class="flex-1 space-y-2 min-w-0">
                         <div class="flex gap-2">
@@ -4993,6 +5026,7 @@ ${diaryLine || '記録なし'}
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>
                         </div>
+                        ${duplicateAlert}
                     </div>
                 `;
                 
