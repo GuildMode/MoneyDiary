@@ -616,6 +616,28 @@
             border-color: var(--color-accent);
             box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
         }
+
+        /* スキャン結果の重複警告スタイル */
+        .duplicate-alert {
+            background-color: #fff7ed;
+            border-color: #fed7aa;
+            color: #9a3412;
+        }
+        body.dark-mode .duplicate-alert {
+            background-color: rgba(251, 191, 36, 0.1);
+            border-color: rgba(251, 191, 36, 0.3);
+            color: #fbbf24;
+        }
+        
+        /* モバイルでの入力欄はみ出し防止 */
+        @media (max-width: 640px) {
+            .scan-item-row {
+                flex-wrap: wrap;
+            }
+            .scan-item-inputs {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -4956,11 +4978,9 @@ ${diaryLine || '記録なし'}
 
             function addScanResultRow(item = {}) {
                 const row = document.createElement('div');
-                row.className = 'flex gap-2 items-start bg-white p-3 rounded-lg border border-gray-200 shadow-sm transition-all hover:shadow-md';
+                row.className = 'flex gap-2 items-start bg-white p-3 rounded-lg border border-gray-200 shadow-sm transition-all hover:shadow-md scan-item-row';
                 
                 // 日付 (YYYY-MM-DD)
-                // アイテムに日付がない場合は、現在選択中の日付(selectedDateStr)を初期値とする
-                // selectedDateStrも未定義なら今日の日付
                 const dateVal = item.date || selectedDateStr || formatDate(new Date());
 
                 // 重複チェック
@@ -4970,7 +4990,6 @@ ${diaryLine || '記録なし'}
                 if (record && record.transactions) {
                     const itemAmount = parseInt(item.amount, 10);
                     if (!isNaN(itemAmount)) {
-                        // 金額が一致する支出があるか確認
                         const found = record.transactions.find(t => 
                             t.type === 'expense' && 
                             t.amount === itemAmount
@@ -4982,47 +5001,46 @@ ${diaryLine || '記録なし'}
                     }
                 }
                 
-                // カテゴリ選択肢の生成と初期選択
                 const predictedCategory = item.category || 'その他';
                 const categoryOptions = appSettings.categories.expense.map(c => {
                     const isSelected = c === predictedCategory ? 'selected' : '';
                     return `<option value="${c}" ${isSelected}>${c}</option>`;
                 }).join('');
                 
-                // "その他"がリストにない場合のフォールバック対応
                 const otherSelected = !appSettings.categories.expense.includes(predictedCategory) ? 'selected' : '';
 
-                // 重複アラートHTML
+                // 重複アラートHTML (CSSクラス .duplicate-alert を使用)
                 const duplicateAlert = isDuplicate 
-                    ? `<div class="text-xs text-orange-700 bg-orange-50 border border-orange-200 p-2 rounded mt-2 flex items-start gap-2">
-                         <span class="text-lg leading-none">⚠️</span>
+                    ? `<div class="text-[10px] sm:text-xs duplicate-alert border p-2 rounded mt-2 flex items-start gap-2">
+                         <span class="text-sm leading-none">⚠️</span>
                          <span>
-                           <strong>重複の可能性:</strong> 既存の記録と金額が一致しています。<br>
-                           <span class="opacity-75">登録済: ¥${duplicateInfo.amount.toLocaleString()} (${duplicateInfo.category} / ${duplicateInfo.memo || 'メモなし'})</span>
+                           <strong>重複の可能性:</strong> 既存の記録と一致しています。<br>
+                           <span class="opacity-80">登録済: ¥${duplicateInfo.amount.toLocaleString()} (${duplicateInfo.category} / ${duplicateInfo.memo || 'メモなし'})</span>
                          </span>
                        </div>` 
                     : '';
 
-                // 重複時はチェックを外す
                 const checkState = isDuplicate ? '' : 'checked';
 
                 row.innerHTML = `
-                    <div class="pt-2">
+                    <div class="pt-1.5">
                         <input type="checkbox" class="scan-check w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${checkState}>
                     </div>
                     <div class="flex-1 space-y-2 min-w-0">
-                        <div class="flex gap-2">
-                            <input type="date" class="scan-date w-full sm:w-32 py-1.5 px-2 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value="${dateVal}">
-                            <input type="text" class="scan-desc flex-1 py-1.5 px-2 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" placeholder="内容" value="${escapeHtml(item.description || '')}">
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="date" class="scan-date w-full sm:w-32 py-1.5 px-2 text-sm border border-gray-200 rounded focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-800" value="${dateVal}">
+                            <input type="text" class="scan-desc w-full sm:flex-1 py-1.5 px-2 text-sm border border-gray-200 rounded focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-800" placeholder="内容" value="${escapeHtml(item.description || '')}">
                         </div>
-                        <div class="flex gap-2 items-center">
-                            <span class="text-gray-500 text-xs">¥</span>
-                            <input type="number" class="scan-amount w-24 sm:flex-1 py-1.5 px-2 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 font-bold" placeholder="金額" value="${item.amount || ''}">
-                            <select class="scan-cat flex-1 sm:w-24 py-1.5 px-2 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-gray-600">
+                        <div class="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+                            <div class="flex items-center gap-1 flex-1 min-w-[100px]">
+                                <span class="text-gray-400 text-xs">¥</span>
+                                <input type="number" class="scan-amount w-full py-1.5 px-2 text-sm border border-gray-200 rounded focus:ring-blue-500 focus:border-blue-500 font-bold bg-gray-50 dark:bg-gray-800" placeholder="金額" value="${item.amount || ''}">
+                            </div>
+                            <select class="scan-cat w-full sm:w-28 py-1.5 px-2 text-sm border border-gray-200 rounded focus:ring-blue-500 focus:border-blue-500 text-gray-600 bg-gray-50 dark:bg-gray-800">
                                 ${categoryOptions}
                                 <option value="その他" ${otherSelected}>その他</option>
                             </select>
-                            <button type="button" class="scan-remove text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50 transition-colors">
+                            <button type="button" class="scan-remove text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors ml-auto">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>
                         </div>
@@ -5030,11 +5048,10 @@ ${diaryLine || '記録なし'}
                     </div>
                 `;
                 
-                // 削除ボタン
                 row.querySelector('.scan-remove').addEventListener('click', () => {
                     row.remove();
                     if (scanResultList.children.length === 0) {
-                        addScanResultRow(); // 最後の1行が消えたら空行を追加
+                        addScanResultRow();
                     }
                 });
 
